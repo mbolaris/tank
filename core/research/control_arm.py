@@ -91,41 +91,74 @@ class SensitivityReport:
         }
 
 
+def champion_seed_scores(champion: dict[str, object]) -> dict[str, float]:
+    """Return the champion's recorded score for each seed it actually covers.
+
+    Matrix-format champions (``tank/survival_5k`` among them) store the *mean*
+    across several seeds as the top-level ``score`` while ``seed`` names only the
+    primary one.  Comparing that mean against a single-seed run is the trap
+    ``tools/validate_reproduction.py`` documents, and it manufactures a
+    reproduction failure out of a champion that reproduces exactly.
+    """
+    per_seed = champion.get("per_seed")
+    if isinstance(per_seed, dict) and per_seed:
+        scores: dict[str, float] = {}
+        for seed, payload in per_seed.items():
+            if isinstance(payload, dict) and "score" in payload:
+                scores[str(seed)] = _as_float(payload["score"])
+        if scores:
+            return scores
+    return {str(_as_int(champion["seed"])): _as_float(champion["score"])}
+
+
 @dataclass(frozen=True)
 class ReferenceCheck:
-    """Whether a committed champion record is a usable reference *on this machine*.
+    """Whether a committed champion record reproduces *on this machine*.
 
-    Tank scores are not bit-identical across platforms, so a champion recorded by
-    CI can sit well outside local reproduction tolerance.  Comparing local
-    candidates against such a record measures the platform gap, not the search:
-    with a champion 15 points below the local baseline, a candidate that is
-    twelve points *worse* than baseline still scores as an improvement, and the
-    arm's acceptance rate approaches 100% for reasons that have nothing to do
-    with its mutations.
+    Compares like with like: each seed the champion records against a local run
+    of that same seed.  A champion that does not reproduce is not a usable
+    acceptance reference, because the gap between machines would be scored as
+    though the arm's mutations had caused it.
     """
 
     benchmark_id: str
-    seed: int
-    champion_score: float
-    local_score: float
+    champion_scores: dict[str, float]
+    local_scores: dict[str, float]
     tolerance: float
 
     @property
-    def delta(self) -> float:
-        return self.local_score - self.champion_score
+    def seeds(self) -> tuple[int, ...]:
+        return tuple(sorted(int(seed) for seed in self.champion_scores))
+
+    @property
+    def deltas(self) -> dict[str, float]:
+        return {
+            seed: self.local_scores[seed] - score
+            for seed, score in self.champion_scores.items()
+            if seed in self.local_scores
+        }
+
+    @property
+    def max_abs_delta(self) -> float:
+        deltas = self.deltas
+        return max((abs(delta) for delta in deltas.values()), default=0.0)
 
     @property
     def reproduces(self) -> bool:
-        return abs(self.delta) <= self.tolerance
+        """True when every recorded seed reproduces within tolerance."""
+        if set(self.champion_scores) != set(self.local_scores):
+            return False
+        return self.max_abs_delta <= self.tolerance
 
     def to_dict(self) -> dict[str, object]:
         return {
             "benchmark_id": self.benchmark_id,
-            "seed": self.seed,
-            "champion_score": self.champion_score,
-            "local_score": self.local_score,
+            "seeds": list(self.seeds),
+            "champion_scores": self.champion_scores,
+            "local_scores": self.local_scores,
             "tolerance": self.tolerance,
-            "delta": self.delta,
+            "deltas": self.deltas,
+            "max_abs_delta": self.max_abs_delta,
             "reproduces": self.reproduces,
         }
 
@@ -136,16 +169,18 @@ def check_reference_validity(
     *,
     tolerance: float = REPRODUCTION_TOLERANCE,
 ) -> ReferenceCheck:
-    """Re-run the champion's own seed locally and report whether it reproduces."""
+    """Re-run every seed the champion records and report whether each reproduces."""
     from tools.non_ai_baseline import evaluate_plan
 
-    seed = _as_int(champion["seed"])
-    local = evaluate_plan(benchmark, (seed,), None)
+    champion_scores = champion_seed_scores(champion)
+    local_scores: dict[str, float] = {}
+    for seed in sorted(int(seed) for seed in champion_scores):
+        result = evaluate_plan(benchmark, (seed,), None)
+        local_scores[str(seed)] = _as_float(result["score"])
     return ReferenceCheck(
         benchmark_id=str(benchmark.BENCHMARK_ID),
-        seed=seed,
-        champion_score=_as_float(champion["score"]),
-        local_score=_as_float(local["score"]),
+        champion_scores=champion_scores,
+        local_scores=local_scores,
         tolerance=tolerance,
     )
 

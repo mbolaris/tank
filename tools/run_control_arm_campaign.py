@@ -113,13 +113,20 @@ def main() -> None:
         if not reference_check.reproduces:
             print(
                 f"NOTE: champion for {benchmark.BENCHMARK_ID} does not reproduce here "
-                f"(recorded {reference_check.champion_score:.6f}, local "
-                f"{reference_check.local_score:.6f}, delta {reference_check.delta:+.6f} "
-                f"> tolerance {reference_check.tolerance:g}). Using the paired local "
-                "baseline as the acceptance reference instead.",
+                f"(largest per-seed delta {reference_check.max_abs_delta:+.6f} > "
+                f"tolerance {reference_check.tolerance:g}; per-seed deltas "
+                f"{reference_check.deltas}). Using the paired local baseline as the "
+                "acceptance reference instead.",
                 file=sys.stderr,
             )
             champion = None
+        else:
+            print(
+                f"Champion for {benchmark.BENCHMARK_ID} reproduces exactly on "
+                f"{len(reference_check.seeds)} seed(s); the paired local baseline is "
+                "numerically the champion.",
+                file=sys.stderr,
+            )
 
     report = run_campaign(
         benchmark,

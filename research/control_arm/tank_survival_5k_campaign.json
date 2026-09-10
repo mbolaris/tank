@@ -1,0 +1,719 @@
+{
+  "arm": "non-ai-random-search",
+  "benchmark_id": "tank/survival_5k",
+  "heldout_id": "heldout/survival_heldout_5k",
+  "seeds": [
+    42,
+    7,
+    123
+  ],
+  "candidates": 40,
+  "reference_kind": "local-paired-baseline",
+  "reference_score": 687.1077318101328,
+  "baseline_score": 687.1077318101328,
+  "acceptance": {
+    "accepted": 12,
+    "rate": 0.3,
+    "wilson_95": [
+      0.18074845229746528,
+      0.45430018818144935
+    ]
+  },
+  "transfer": {
+    "evaluated": 12,
+    "transferred": 6,
+    "rate": 0.5
+  },
+  "best_achieved": {
+    "score": 805.3971326120803,
+    "candidate": 27,
+    "delta_vs_reference": 118.28940080194752
+  },
+  "score_distribution": {
+    "mean": 634.8975467674289,
+    "stdev": 119.8608576371244,
+    "min": 409.6025169971129,
+    "max": 805.3971326120803
+  },
+  "compute": {
+    "wall_clock_seconds": 9031.757724477,
+    "benchmark_runs": 162
+  },
+  "reference_check": {
+    "benchmark_id": "tank/survival_5k",
+    "seeds": [
+      7,
+      42,
+      123
+    ],
+    "champion_scores": {
+      "42": 702.5775136245999,
+      "7": 749.4781982900204,
+      "123": 609.2674835157783
+    },
+    "local_scores": {
+      "7": 749.4781982900204,
+      "42": 702.5775136245999,
+      "123": 609.2674835157783
+    },
+    "tolerance": 1e-09,
+    "deltas": {
+      "42": 0.0,
+      "7": 0.0,
+      "123": 0.0
+    },
+    "max_abs_delta": 0.0,
+    "reproduces": true
+  },
+  "trace_path": "research/control_arm/tank_survival_5k_candidates.jsonl",
+  "candidate_outcomes": [
+    {
+      "candidate": 1,
+      "accepted": true,
+      "score": 747.3218374814963,
+      "per_seed": {
+        "123": 731.693917165882,
+        "42": 760.7783166558596,
+        "7": 749.4932786227473
+      },
+      "mutation_digest": "701454cb4c39c310",
+      "runtime_seconds": 477.42459340799996,
+      "heldout_score": 454.5053925415953,
+      "heldout_per_seed": {
+        "123": 455.6601255575677,
+        "42": 455.05672004178257,
+        "7": 452.79933202543583
+      },
+      "heldout_transferred": true
+    },
+    {
+      "candidate": 2,
+      "accepted": true,
+      "score": 742.8014494156383,
+      "per_seed": {
+        "123": 796.7571115525311,
+        "42": 707.6726620541677,
+        "7": 723.9745746402162
+      },
+      "mutation_digest": "f90f8dfe2b397db9",
+      "runtime_seconds": 318.56865651299995,
+      "heldout_score": 451.95671261845615,
+      "heldout_per_seed": {
+        "123": 385.8648689509384,
+        "42": 487.67250671904503,
+        "7": 482.33276218538504
+      },
+      "heldout_transferred": true
+    },
+    {
+      "candidate": 3,
+      "accepted": false,
+      "score": 475.23712524348247,
+      "per_seed": {
+        "123": 0.0,
+        "42": 705.7668630459433,
+        "7": 719.944512684504
+      },
+      "mutation_digest": "ab6e1103ea63a3d9",
+      "runtime_seconds": 164.9171510780002,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 4,
+      "accepted": false,
+      "score": 503.31827308185365,
+      "per_seed": {
+        "123": 0.0,
+        "42": 757.6335201459397,
+        "7": 752.3212990996212
+      },
+      "mutation_digest": "28cb127f893da31f",
+      "runtime_seconds": 169.34307634300012,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 5,
+      "accepted": false,
+      "score": 491.3350246255946,
+      "per_seed": {
+        "123": 0.0,
+        "42": 716.3701823771949,
+        "7": 757.634891499589
+      },
+      "mutation_digest": "77a33069be0cf345",
+      "runtime_seconds": 174.3525786209998,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 6,
+      "accepted": true,
+      "score": 745.2885392234144,
+      "per_seed": {
+        "123": 747.9254570694052,
+        "42": 755.6324291457966,
+        "7": 732.3077314550419
+      },
+      "mutation_digest": "354a1ceb4e64f971",
+      "runtime_seconds": 336.5623738700001,
+      "heldout_score": 482.7822743986566,
+      "heldout_per_seed": {
+        "123": 426.6384144449824,
+        "42": 564.2244496330828,
+        "7": 457.48395911790453
+      },
+      "heldout_transferred": true
+    },
+    {
+      "candidate": 7,
+      "accepted": false,
+      "score": 492.119438986537,
+      "per_seed": {
+        "123": 0.0,
+        "42": 746.8848961537631,
+        "7": 729.4734208058478
+      },
+      "mutation_digest": "155ad5ca8852c652",
+      "runtime_seconds": 166.7478936749999,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 8,
+      "accepted": false,
+      "score": 746.1223073815642,
+      "per_seed": {
+        "123": 876.1039151316237,
+        "42": 740.5270347281768,
+        "7": 621.7359722848921
+      },
+      "mutation_digest": "8bed272418c496d4",
+      "runtime_seconds": 183.96437996799978,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 9,
+      "accepted": false,
+      "score": 510.8203737314868,
+      "per_seed": {
+        "123": 0.0,
+        "42": 794.1823703719775,
+        "7": 738.278750822483
+      },
+      "mutation_digest": "78739e318be257b2",
+      "runtime_seconds": 176.69055814000012,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 10,
+      "accepted": false,
+      "score": 491.24672096466975,
+      "per_seed": {
+        "123": 0.0,
+        "42": 738.5673279247412,
+        "7": 735.1728349692679
+      },
+      "mutation_digest": "e3c065e90633fc9d",
+      "runtime_seconds": 172.27389441900004,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 11,
+      "accepted": false,
+      "score": 750.7501036279297,
+      "per_seed": {
+        "123": 847.6827007374862,
+        "42": 673.3525584203462,
+        "7": 731.2150517259569
+      },
+      "mutation_digest": "dd613a55e38981cf",
+      "runtime_seconds": 195.04344996300006,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 12,
+      "accepted": false,
+      "score": 651.0990016717441,
+      "per_seed": {
+        "123": 584.7172965304957,
+        "42": 661.8807728066713,
+        "7": 706.6989356780654
+      },
+      "mutation_digest": "6d0595d383b28136",
+      "runtime_seconds": 173.8043897610005,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 13,
+      "accepted": false,
+      "score": 409.6025169971129,
+      "per_seed": {
+        "123": 0.0,
+        "42": 716.2058147103813,
+        "7": 512.6017362809574
+      },
+      "mutation_digest": "0813f6bfe9f26a65",
+      "runtime_seconds": 176.39994592899984,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 14,
+      "accepted": false,
+      "score": 730.3035729158992,
+      "per_seed": {
+        "123": 803.597043261044,
+        "42": 729.5867099475037,
+        "7": 657.7269655391497
+      },
+      "mutation_digest": "0f7f435d91a19473",
+      "runtime_seconds": 180.33086858299976,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 15,
+      "accepted": false,
+      "score": 717.2480156820426,
+      "per_seed": {
+        "123": 725.3962870643637,
+        "42": 787.1507786351275,
+        "7": 639.1969813466367
+      },
+      "mutation_digest": "334db879a57c5569",
+      "runtime_seconds": 180.30242576799992,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 16,
+      "accepted": true,
+      "score": 699.6090025188514,
+      "per_seed": {
+        "123": 619.4139918295858,
+        "42": 783.3584576563942,
+        "7": 696.0545580705743
+      },
+      "mutation_digest": "a47d1a18f87b6cac",
+      "runtime_seconds": 324.09604594899974,
+      "heldout_score": 426.57780572743604,
+      "heldout_per_seed": {
+        "123": 381.7483784485881,
+        "42": 467.8742272832202,
+        "7": 430.11081145049985
+      },
+      "heldout_transferred": false
+    },
+    {
+      "candidate": 17,
+      "accepted": false,
+      "score": 669.9614351963118,
+      "per_seed": {
+        "123": 675.3657254479592,
+        "42": 640.0128207929248,
+        "7": 694.505759348051
+      },
+      "mutation_digest": "3b7328544dc1e9b5",
+      "runtime_seconds": 163.14333275799981,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 18,
+      "accepted": false,
+      "score": 730.6436724558175,
+      "per_seed": {
+        "123": 657.4577044760533,
+        "42": 867.5255451303952,
+        "7": 666.9477677610039
+      },
+      "mutation_digest": "fd56783b578334b5",
+      "runtime_seconds": 173.67657417599912,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 19,
+      "accepted": false,
+      "score": 476.0573135257032,
+      "per_seed": {
+        "123": 0.0,
+        "42": 670.9536241650643,
+        "7": 757.2183164120454
+      },
+      "mutation_digest": "034d282c91221cc0",
+      "runtime_seconds": 170.09758258300008,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 20,
+      "accepted": false,
+      "score": 550.5862290656911,
+      "per_seed": {
+        "123": 0.0,
+        "42": 893.6903191306897,
+        "7": 758.0683680663835
+      },
+      "mutation_digest": "d4680b96e8b54ef4",
+      "runtime_seconds": 184.6098420010003,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 21,
+      "accepted": true,
+      "score": 784.0079734303289,
+      "per_seed": {
+        "123": 882.375175272491,
+        "42": 780.3738273265504,
+        "7": 689.2749176919451
+      },
+      "mutation_digest": "649e2d181a946f7b",
+      "runtime_seconds": 326.61041415599993,
+      "heldout_score": 446.87873373706003,
+      "heldout_per_seed": {
+        "123": 410.0571766505739,
+        "42": 465.3565734658134,
+        "7": 465.22245109479275
+      },
+      "heldout_transferred": false
+    },
+    {
+      "candidate": 22,
+      "accepted": false,
+      "score": 508.4473265872766,
+      "per_seed": {
+        "123": 0.0,
+        "42": 828.7189933188563,
+        "7": 696.6229864429736
+      },
+      "mutation_digest": "d6957570f193cf5b",
+      "runtime_seconds": 167.95886869700007,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 23,
+      "accepted": true,
+      "score": 745.7376578873135,
+      "per_seed": {
+        "123": 792.7409354991306,
+        "42": 730.5142609441491,
+        "7": 713.9577772186606
+      },
+      "mutation_digest": "ae81744210de1b3d",
+      "runtime_seconds": 334.81857050799954,
+      "heldout_score": 469.75182378465473,
+      "heldout_per_seed": {
+        "123": 457.60808278990737,
+        "42": 477.9555809230251,
+        "7": 473.69180764103163
+      },
+      "heldout_transferred": true
+    },
+    {
+      "candidate": 24,
+      "accepted": true,
+      "score": 733.3507743092833,
+      "per_seed": {
+        "123": 646.9834199469511,
+        "42": 810.4667079405796,
+        "7": 742.6021950403195
+      },
+      "mutation_digest": "1f42fff70e074237",
+      "runtime_seconds": 317.68465871900025,
+      "heldout_score": 459.9704312385022,
+      "heldout_per_seed": {
+        "123": 475.51047692634233,
+        "42": 444.20591123283003,
+        "7": 460.1949055563343
+      },
+      "heldout_transferred": true
+    },
+    {
+      "candidate": 25,
+      "accepted": true,
+      "score": 694.0091542085848,
+      "per_seed": {
+        "123": 679.2311769873902,
+        "42": 705.8316189033773,
+        "7": 696.9646667349872
+      },
+      "mutation_digest": "15f9e89b4f85426e",
+      "runtime_seconds": 314.3815334049996,
+      "heldout_score": 447.04774633181745,
+      "heldout_per_seed": {
+        "123": 435.8996316696402,
+        "42": 432.3006458902222,
+        "7": 472.94296143558995
+      },
+      "heldout_transferred": false
+    },
+    {
+      "candidate": 26,
+      "accepted": false,
+      "score": 463.61974159780925,
+      "per_seed": {
+        "123": 0.0,
+        "42": 673.712701564745,
+        "7": 717.1465232286828
+      },
+      "mutation_digest": "75947ebe7a631bf9",
+      "runtime_seconds": 163.59135229300045,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 27,
+      "accepted": true,
+      "score": 805.3971326120803,
+      "per_seed": {
+        "123": 801.9490304506525,
+        "42": 876.3155553312417,
+        "7": 737.9268120543466
+      },
+      "mutation_digest": "43aab0e033c07e7a",
+      "runtime_seconds": 323.9911055010007,
+      "heldout_score": 468.471973620626,
+      "heldout_per_seed": {
+        "123": 450.533271865545,
+        "42": 487.4981409210469,
+        "7": 467.3845080752862
+      },
+      "heldout_transferred": true
+    },
+    {
+      "candidate": 28,
+      "accepted": false,
+      "score": 736.4151526939077,
+      "per_seed": {
+        "123": 576.1320338519304,
+        "42": 918.4805141800807,
+        "7": 714.632910049712
+      },
+      "mutation_digest": "782094915842fb9a",
+      "runtime_seconds": 176.65361223200034,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 29,
+      "accepted": false,
+      "score": 516.5907436103303,
+      "per_seed": {
+        "123": 0.0,
+        "42": 843.6076326445983,
+        "7": 706.1645981863926
+      },
+      "mutation_digest": "691c5b2e521cddb3",
+      "runtime_seconds": 164.32675455000026,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 30,
+      "accepted": false,
+      "score": 478.5281780873413,
+      "per_seed": {
+        "123": 0.0,
+        "42": 685.0322406563997,
+        "7": 750.5522936056242
+      },
+      "mutation_digest": "75327876600eca0a",
+      "runtime_seconds": 164.83919723299914,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 31,
+      "accepted": false,
+      "score": 692.0824926536952,
+      "per_seed": {
+        "123": 569.599074121447,
+        "42": 789.9575344596002,
+        "7": 716.6908693800384
+      },
+      "mutation_digest": "fae1a98cccb7e56c",
+      "runtime_seconds": 166.36468273699938,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 32,
+      "accepted": false,
+      "score": 701.4855871096889,
+      "per_seed": {
+        "123": 846.3867253509352,
+        "42": 561.2436384497057,
+        "7": 696.826397528426
+      },
+      "mutation_digest": "31700758cb9a56f9",
+      "runtime_seconds": 173.04687183700116,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 33,
+      "accepted": false,
+      "score": 647.0262834292975,
+      "per_seed": {
+        "123": 555.9771052967639,
+        "42": 657.1107896786394,
+        "7": 727.9909553124888
+      },
+      "mutation_digest": "85904385828c77ff",
+      "runtime_seconds": 163.02248877400052,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 34,
+      "accepted": true,
+      "score": 767.2611346779019,
+      "per_seed": {
+        "123": 767.6334156136737,
+        "42": 840.7545653673038,
+        "7": 693.395423052728
+      },
+      "mutation_digest": "f90cddb9a426dbc4",
+      "runtime_seconds": 319.7202409429992,
+      "heldout_score": 429.1683861345634,
+      "heldout_per_seed": {
+        "123": 437.75525954298706,
+        "42": 473.9448723974207,
+        "7": 375.8050264632824
+      },
+      "heldout_transferred": false
+    },
+    {
+      "candidate": 35,
+      "accepted": false,
+      "score": 666.0030365938495,
+      "per_seed": {
+        "123": 756.2673122645203,
+        "42": 540.6602679862648,
+        "7": 701.0815295307633
+      },
+      "mutation_digest": "02c5a3a51dd59cec",
+      "runtime_seconds": 173.31850782899892,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 36,
+      "accepted": false,
+      "score": 517.1191183547321,
+      "per_seed": {
+        "123": 0.0,
+        "42": 822.4703192943169,
+        "7": 728.8870357698794
+      },
+      "mutation_digest": "7af50709eeac6a32",
+      "runtime_seconds": 172.75731580399952,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 37,
+      "accepted": false,
+      "score": 462.45630726815307,
+      "per_seed": {
+        "123": 0.0,
+        "42": 729.9725872661157,
+        "7": 657.3963345383435
+      },
+      "mutation_digest": "2f6d1b85ef9557aa",
+      "runtime_seconds": 161.95609411900114,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 38,
+      "accepted": true,
+      "score": 750.3046088576702,
+      "per_seed": {
+        "123": 696.1211322514022,
+        "42": 826.7937418685148,
+        "7": 727.9989524530938
+      },
+      "mutation_digest": "715f77501ad50327",
+      "runtime_seconds": 321.33383589500045,
+      "heldout_score": 423.604385617311,
+      "heldout_per_seed": {
+        "123": 460.3566031440112,
+        "42": 394.87724933082814,
+        "7": 415.5793043770936
+      },
+      "heldout_transferred": false
+    },
+    {
+      "candidate": 39,
+      "accepted": false,
+      "score": 662.1476110702519,
+      "per_seed": {
+        "123": 517.2884759405156,
+        "42": 792.2545662601116,
+        "7": 676.8997910101283
+      },
+      "mutation_digest": "88b92d3aa0eadf63",
+      "runtime_seconds": 167.02913277900007,
+      "heldout_score": null,
+      "heldout_per_seed": {},
+      "heldout_transferred": null
+    },
+    {
+      "candidate": 40,
+      "accepted": true,
+      "score": 732.4399018648215,
+      "per_seed": {
+        "123": 694.0009105840339,
+        "42": 769.8386012666767,
+        "7": 733.4801937437538
+      },
+      "mutation_digest": "d6179142791fd85f",
+      "runtime_seconds": 325.6740678719998,
+      "heldout_score": 435.34515010476844,
+      "heldout_per_seed": {
+        "123": 355.6053406444575,
+        "42": 480.603163301181,
+        "7": 469.8269463686668
+      },
+      "heldout_transferred": false
+    }
+  ]
+}

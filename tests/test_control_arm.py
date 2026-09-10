@@ -23,6 +23,7 @@ from core.research.control_arm import (
     CandidateOutcome,
     ReferenceCheck,
     binomial_interval,
+    champion_seed_scores,
     check_reference_validity,
     probe_operator_sensitivity,
     run_campaign,
@@ -120,21 +121,64 @@ def test_champion_that_reproduces_is_accepted():
     benchmark = _benchmark("stub/exact", lambda seed: 500.0)
     check = check_reference_validity(benchmark, {"seed": 42, "score": 500.0})
     assert check.reproduces
-    assert check.delta == 0.0
+    assert check.max_abs_delta == 0.0
 
 
-def test_champion_from_another_platform_is_rejected():
-    """The real case: CI recorded 687.11 where this machine returns 702.58."""
-    benchmark = _benchmark("stub/drifted", lambda seed: 702.5775136245999)
-    check = check_reference_validity(benchmark, {"seed": 42, "score": 687.1077318101328})
+def test_matrix_champion_is_compared_per_seed_not_against_its_mean():
+    """The real trap: survival_5k's top-level score is a three-seed mean.
+
+    Comparing that mean against a single-seed run manufactures a reproduction
+    failure out of a champion that reproduces exactly - which is precisely what
+    ``tools/validate_reproduction.py`` warns about.
+    """
+    recorded = {
+        "42": 702.5775136245999,
+        "7": 749.4781982900204,
+        "123": 609.2674835157783,
+    }
+    benchmark = _benchmark("stub/matrix", lambda seed: recorded[str(seed)])
+    champion = {
+        "seed": 42,
+        "score": 687.1077318101328,  # the mean, not any seed's score
+        "per_seed": {seed: {"score": score} for seed, score in recorded.items()},
+    }
+    check = check_reference_validity(benchmark, champion)
+    assert check.reproduces, "a champion matching every recorded seed must reproduce"
+    assert check.seeds == (7, 42, 123)
+    assert check.max_abs_delta == 0.0
+
+
+def test_champion_seed_scores_prefers_per_seed_over_the_mean():
+    champion = {
+        "seed": 42,
+        "score": 687.1077318101328,
+        "per_seed": {"42": {"score": 702.5}, "7": {"score": 749.5}},
+    }
+    assert champion_seed_scores(champion) == {"42": 702.5, "7": 749.5}
+
+
+def test_champion_seed_scores_falls_back_to_the_single_seed():
+    assert champion_seed_scores({"seed": 42, "score": 500.0}) == {"42": 500.0}
+
+
+def test_champion_that_genuinely_diverges_is_rejected():
+    champion = {
+        "seed": 42,
+        "score": 500.0,
+        "per_seed": {"42": {"score": 500.0}, "7": {"score": 600.0}},
+    }
+    local = {"42": 500.0, "7": 611.0}
+    benchmark = _benchmark("stub/diverged", lambda seed: local[str(seed)])
+    check = check_reference_validity(benchmark, champion)
     assert not check.reproduces
-    assert check.delta == pytest.approx(15.4698, abs=1e-3)
+    assert check.max_abs_delta == pytest.approx(11.0)
+    assert check.deltas["42"] == 0.0
 
 
 def test_reference_check_uses_the_champions_own_seed():
     benchmark = _benchmark("stub/seeded", lambda seed: float(seed))
     check = check_reference_validity(benchmark, {"seed": 7, "score": 7.0})
-    assert check.seed == 7
+    assert check.seeds == (7,)
     assert check.reproduces
 
 
@@ -246,9 +290,8 @@ def test_summary_separates_acceptance_from_transfer(tmp_path: Path):
 def test_summary_records_an_unreproducible_reference(tmp_path: Path):
     check = ReferenceCheck(
         benchmark_id="stub/summary",
-        seed=42,
-        champion_score=687.1077318101328,
-        local_score=702.5775136245999,
+        champion_scores={"42": 500.0},
+        local_scores={"42": 515.0},
         tolerance=1e-9,
     )
     report = summarize_campaign(
@@ -265,4 +308,4 @@ def test_summary_records_an_unreproducible_reference(tmp_path: Path):
         reference_check=check,
     )
     assert report["reference_check"]["reproduces"] is False
-    assert report["reference_check"]["delta"] == pytest.approx(15.4698, abs=1e-3)
+    assert report["reference_check"]["max_abs_delta"] == pytest.approx(15.0)
