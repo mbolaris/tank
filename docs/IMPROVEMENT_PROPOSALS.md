@@ -910,81 +910,138 @@ not defensible until the data pipeline is as real as the system design.
 **Every gap the review named now has tooling** (re-verified 2026-07-25): the
 attempt ledger and multi-seed matrix (10.1/10.2), held-out evaluators plus the
 locked-path check (10.3), the patch taxonomy classifier (10.4), and the non-AI
-random-search control arm (10.5) have all shipped. What is still missing is
-the *output*: nobody has run the arms against each other and published the
-comparison. That is 10.6, and it is now the only open item in this theme.
+random-search control arm (10.5) have all shipped. The *output* was the gap,
+and as of 2026-09-10 the control arm has been run and published: forty
+candidates, every one committed under `research/control_arm/` with its
+mutation plan and per-seed scores. See 10.6 for the numbers, including the
+finding that seven eighths of the arm's apparent gain is overfitting to the
+benchmark it tuned against.
+
+What remains open in 10.6 is not tooling and not a campaign: it is that the
+**AI arm has no denominator**. Its rejected attempts were never logged through
+the ledger contract, so an acceptance-rate comparison has nothing to divide
+by. Closing that is a discipline change — log agent attempts as they happen —
+rather than something a further campaign can supply.
 
 None of these change simulation behavior — all **Layer 2** — but they touch
 scoring/CI infrastructure, so keep each one a separate PR (Rule: Layer 2
 changes stay separate from Layer 1 improvements).
 
 
-### 10.6 Actually run the control-arm comparison — `M` · ★★★
-**10.5 built the machinery; nobody has run it.** `tools/non_ai_baseline.py`
-proposes deterministic parameter mutations, evaluates them across a seed
-matrix through the normal benchmark contract, and logs them to
-`research/attempts.jsonl` under the `non-ai-random-search` agent id. The
-headline figure the paper needs — "agent attempts vs. random-search attempts,
-same benchmark, same seed budget" — is a *result*, not a tool, and it does not
-exist yet.
+### 10.6 Run the control-arm comparison — `M` · ★★★ — CAMPAIGN RUN (2026-09-10)
 
-**Plan.** Fix a budget (say N proposals on `ecosystem_health_10k`, seeds
-42/7/123), run the baseline arm to completion, and summarise both arms out of
-the shared ledger with `tools/summarize_attempts.py`. Report acceptance rate
-and score delta per arm. This is the one Theme 10 item whose output is
-evidence rather than infrastructure — which is exactly what review #2 said was
-missing. **Layer 2** (no simulation change; it only reads the pipeline).
-
-**Review #3 independently reached the same conclusion and quantified it.** Its
-finding: "the platform is stronger than the scientific evidence." It credits
-the infrastructure by name — frozen poker opponents, frozen soccer teams, the
-foraging gym, replay fingerprints, champion provenance, transfer studies, skill
-ledgers, validation tooling — and then observes that "the evidence base remains
-comparatively small," and that the target-memory transfer result is "promising,
-not yet a compelling general demonstration."
-
-The measurement that makes this undeniable, taken 2026-07-26:
+**Layer 2.** 10.5 built the machinery and nobody had run it. It has now been
+run, at forty candidates on a three-seed matrix, and the evidence is committed
+rather than left in a gitignored ledger. The design was fixed in
+[CONTROL_ARM_PREREGISTRATION.md](CONTROL_ARM_PREREGISTRATION.md) **before any
+result existed**, as its own commit ahead of the results commit, so the
+ordering is checkable in `git log` rather than asserted.
 
 ```bash
-wc -l research/attempts.jsonl   # 16
+python tools/run_control_arm_campaign.py benchmarks/tank/survival_5k.py \
+    --candidates 40 --seeds 42,7,123 \
+    --heldout benchmarks/heldout/survival_heldout_5k.py
 ```
 
-**Sixteen rows.** Theme 10 built an attempt ledger designed to hold hundreds of
-logged attempts including failures, and it currently holds sixteen. That single
-number is the gap between "credible research platform" (91) and a defensible
-paper.
+Evidence: `research/control_arm/` — every candidate with its mutation plan and
+per-seed scores, accepted and rejected alike.
 
-**What review #3 says a defensible claim requires**, which is a stricter and
-more useful acceptance bar than the N-proposal budget above — treat it as 10.6's
-real definition of done:
+#### The headline
 
-- many attempted improvements, not a handful;
-- multiple seeds (already supported — `tools/run_bench_matrix.py`, default
-  42/7/123);
-- held-out evaluators (already shipped — **10.3**);
-- **negative results published, not discarded** — the ledger already records
-  rejected and errored attempts, so this costs nothing but the discipline of
-  running them;
-- compute accounting;
-- **preregistered success criteria** — decide the bar before running the arm,
-  not after seeing the numbers.
+| quantity | value |
+|---|---|
+| candidates | 40 |
+| accepted | **12/40 = 30%** (Wilson 95% CI 18.1–45.4%) |
+| transferred to held-out | **6/12 = 50%** |
+| best achieved | **805.397** vs baseline 687.108 (**+17.2%**) |
+| worst candidate | 409.603 (−40.4%) |
+| candidates above baseline | 20/40 |
+| compute | 162 benchmark runs, 9,032 s (2 h 31 m) |
 
-Two of those six are pure discipline rather than engineering, which is the
-encouraging read: the remaining work here is mostly *running the machine that
-already exists* and refusing to file the failures in a drawer.
+The reference is the paired local baseline on seeds 42/7/123, which is
+bit-identical to the committed champion on every seed — so this is
+simultaneously a paired-baseline and a champion comparison.
 
-**Review #4 (2026-07-28) held research rigor at 13/15 with the same one-line
-diagnosis: "strong infrastructure; evidence campaign still limited."** Two
-reviews in a row have now said the identical thing; nothing about this task
-has changed except that the gap is a review cycle older. (Housekeeping note,
-measured 2026-07-28: `research/attempts.jsonl` is gitignored
-(`research/attempts*.jsonl` in `.gitignore`), so the ledger is per-checkout —
-review #3's sixteen-row measurement was of its own snapshot. When 10.6's
-campaign actually runs, decide where its ledger output *lives* — a committed
-results file, a CI artifact, or a published summary — or the evidence will
-evaporate with the workspace that produced it.)
+#### Finding 1 — random parameter search beats the shipped defaults, substantially
 
----
+Twenty of forty random mutations scored above the champion, and the best of
+them by **17.2%**. The shipped `ComposableBehavior` parameters are not near a
+local optimum for `survival_5k`. That is not a flattering result for the
+project and it is the one the evidence supports.
+
+#### Finding 2 — and roughly seven eighths of that gain is overfitting
+
+This is what the held-out evaluator was for, and it earned its cost:
+
+| | mean delta among the 12 accepted |
+|---|---|
+| tuning benchmark (`tank/survival_5k`) | **+58.52** (+8.5%) |
+| held-out (`heldout/survival_heldout_5k`) | **+6.24** (+1.4%) |
+
+The gain shrinks to about a seventh on an evaluator the search never touched,
+and the correlation between a candidate's tuning gain and its held-out gain is
+only **+0.266**. Winning on the benchmark you tuned against barely predicts
+winning anywhere else. Two of the largest tuning wins go *negative* held-out:
+c34 (+80.15 → **−14.27**) and c38 (+63.20 → **−19.83**).
+
+**Any future claim of a parameter improvement on this benchmark that is not
+checked against the held-out evaluator should be assumed to be measuring
+overfitting until shown otherwise.**
+
+#### Finding 3 — one candidate does look real
+
+c27 improves both: **+118.29 (+17.2%)** on the tuning benchmark and **+25.04
+(+5.6%)** held-out, and it passes the majority rule on both. That is a genuine
+Layer 1 improvement candidate sitting in the trace. Adopting it is deliberately
+**not** part of this entry — this is a Layer 2 measurement PR, and folding a
+parameter change into it would mix the layers the contributing rules keep
+apart. It is left as a follow-up with its mutation plan recorded in
+`research/control_arm/tank_survival_5k_candidates.jsonl`.
+
+#### The preregistered prediction failed
+
+The preregistration recorded, in advance: *"most accepted candidates will fail
+to transfer."* Result: exactly **6 of 12** failed the majority rule, and by the
+looser test of held-out sign, **8 of 12 were positive**. "Most" was wrong
+either way. Recorded as failed rather than reworded, which is the entire point
+of writing it down first.
+
+#### Two instrument guards, one of which was my own error
+
+Both are enforced in code (`core/research/control_arm.py`) and both fired
+during pre-flight:
+
+- **Sensitivity.** `tank/foraging_gym` absorbed 49 parameter mutations across
+  five probes with **zero** score movement, so it is excluded. The gym pins its
+  traits at neutral and exercises only food pursuit, while this operator
+  mutates flee, cohesion, rest, ambush and poker parameters. A campaign there
+  would have reported a 0% acceptance rate describing the instrument and
+  reading like a finding about search.
+- **Reference validity — and an erratum.** The first version of this work
+  claimed the champion did not reproduce here, citing a 15.47-point
+  cross-platform drift. **That was wrong.** Matrix champions store the mean
+  across their seed matrix as the top-level `score` while `seed` names only the
+  primary seed, so the check compared a three-seed mean against a single-seed
+  run — the exact trap `tools/validate_reproduction.py` documents in a comment.
+  Measured per seed, the champion reproduces **exactly** (max delta 0.0 across
+  42/7/123). The check now compares every recorded seed against its own score,
+  and a regression test pins the matrix case. No campaign number changed: the
+  paired baseline used throughout is bit-identical to the champion.
+
+#### What is still missing, stated plainly
+
+**The head-to-head this entry originally asked for is not fully runnable as
+specified, and this campaign does not deliver it.** The control arm has a
+denominator because every candidate it draws is logged. The AI arm's rejected
+attempts were never systematically logged — they live in unmerged branches and
+abandoned diffs — so there is no denominator to compare against. Publishing an
+"AI vs random search acceptance rate" table would divide by a number that does
+not exist.
+
+What *is* comparable is best-achieved score on the same benchmark and seed
+matrix, reported above. Closing the rest requires the AI arm to log its
+attempts through the same ledger contract going forward; that is a discipline
+change, not a tooling gap, and it is the remaining work on this item.
 
 ## Theme 11 — Skill measurement & visualization: frozen rulers (2026-07)
 

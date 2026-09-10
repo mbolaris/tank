@@ -72,32 +72,50 @@ exactly like a finding. `tank/foraging_gym` is therefore **excluded**.
   same three seeds, measured in the same session as the candidates. Not the
   committed champion record. See the rule below for why.
 
-## Reference admission rule (the second thing pre-flight already caught)
+## Reference admission rule (and an erratum)
 
-The obvious reference is the committed champion record, and on this machine it
-is **invalid**. `tools/validate_reproduction.py` requires a champion to
-reproduce within `1e-9`, and the tank's scores are not bit-identical across
-platforms — a warning `CLAUDE.md` already carries for re-baselining, which turns
-out to apply just as sharply to using a champion as a comparison reference:
+**Erratum.** The first version of this document, and the pre-flight artifact
+committed with it, claimed that `champions/tank/survival_5k.json` did not
+reproduce on this machine — a 15.47-point "cross-platform drift" between CI's
+Python 3.10 and this container's 3.11. **That claim was wrong, and it was my
+error, not the champion's.** It is corrected here rather than quietly deleted,
+because the original is in the pushed history and because the mistake is
+instructive.
 
-| quantity | value |
-|---|---|
-| `champions/tank/survival_5k.json`, recorded by CI (Python 3.10) | 687.1077318101328 |
-| this machine (Python 3.11.15), seed 42, three runs, bit-identical | 702.5775136245999 |
-| delta | **+15.4698** (2.25%), against a `1e-9` tolerance |
+What actually happened: matrix-format champions store the **mean across their
+seed matrix** as the top-level `score`, while the `seed` field names only the
+primary seed. The check compared that three-seed mean against a **single-seed**
+local run of seed 42 — apples to oranges. `tools/validate_reproduction.py`
+documents this exact trap in a comment, and the check walked into it anyway.
 
-The local baseline sits **15.47 points above** the recorded champion. Scoring
-candidates against that champion would mean a candidate twelve points *worse*
-than local baseline still registers as an improvement, and the arm's acceptance
-rate would approach 100% for reasons that have nothing to do with its mutations.
-It would have been the campaign's headline number and it would have been an
-artifact of the Python version.
+Measured like with like, the champion reproduces **exactly**:
 
-So `check_reference_validity()` re-runs the champion's own seed locally before
-the campaign and **refuses to use a champion that does not reproduce**, falling
-back to the paired local baseline and recording the measurement that forced the
-fallback. The champion score is still reported under criterion 3, labelled as
-the cross-platform quantity it is.
+| seed | champion `per_seed` | this machine | delta |
+|---|---|---|---|
+| 42 | 702.5775136245999 | 702.5775136245999 | 0.0 |
+| 7 | 749.4781982900204 | 749.4781982900204 | 0.0 |
+| 123 | 609.2674835157783 | 609.2674835157783 | 0.0 |
+| mean | 687.1077318101328 | 687.1077318101328 | 0.0 |
+
+`check_reference_validity()` now re-runs **every seed the champion records** and
+compares each against its own recorded score, with `champion_seed_scores()`
+preferring `per_seed` over the mean. A regression test pins the matrix case
+using these exact numbers.
+
+**What this does and does not change.** It does not change a single campaign
+number. The campaign scored candidates against the **paired local baseline**
+measured on the same three seeds, which is bit-identical to the champion on
+every seed — so the run is simultaneously a paired-baseline comparison and a
+champion comparison, and the acceptance decisions stand exactly as recorded.
+The paired baseline also remains the better reference for an independent
+reason that survives the erratum: `majority_improvement()` needs per-seed
+scores on both sides, and a reference carrying only a mean would silently
+degenerate to a single-seed comparison, discarding two thirds of the evidence.
+
+The rule itself is kept, because a champion that genuinely fails to reproduce
+would still poison an acceptance rate — the gap between machines would be
+scored as though the arm's mutations had caused it. What changed is that the
+rule now measures the right thing.
 
 ## Preregistered criteria
 
@@ -111,9 +129,8 @@ the cross-platform quantity it is.
    accepted candidates will fail to transfer, because the acceptance rule is
    being applied to a noisy trajectory-sensitive benchmark.
 3. **Best achieved.** Report the arm's best mean score against the paired
-   local baseline, and separately against the champion's recorded score —
-   the latter flagged as a cross-platform comparison, not a same-machine one.
-   This is the only quantity comparable across the two arms at all.
+   local baseline, which is numerically the champion. This is the only
+   quantity comparable across the two arms at all.
 4. **Compute.** Report wall-clock seconds and benchmark-run count for the whole
    campaign.
 
