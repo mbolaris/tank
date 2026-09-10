@@ -1,0 +1,9 @@
+{
+  "benchmark_id": "tank/survival_5k",
+  "seed": 42,
+  "champion_score": 687.1077318101328,
+  "local_score": 702.5775136245999,
+  "tolerance": 1e-09,
+  "delta": 15.46978181446707,
+  "reproduces": false
+}
