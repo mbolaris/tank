@@ -36,6 +36,21 @@ from tools.run_bench import load_benchmark_module
 from tools.validate_improvement import get_champion_record
 
 
+def _num(value: object) -> float:
+    """Narrow a report value to a float so it can be formatted."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    raise TypeError(f"expected a number, got {type(value).__name__}")
+
+
+def _section(report: dict[str, object], key: str) -> dict[str, object]:
+    """Narrow one nested section of the campaign report for printing."""
+    section = report[key]
+    if not isinstance(section, dict):
+        raise TypeError(f"campaign report section {key!r} is not a mapping")
+    return section
+
+
 def _load_champion(benchmark_id: str, override: str | None) -> dict | None:
     """Return the champion record used as the acceptance reference, if any."""
     path = Path(override) if override else ROOT / "champions" / f"{benchmark_id}.json"
@@ -149,25 +164,31 @@ def main() -> None:
         json.dumps(report, indent=2) + "\n", encoding="utf-8"
     )
 
-    acceptance = report["acceptance"]
-    transfer = report["transfer"]
-    compute = report["compute"]
+    acceptance = _section(report, "acceptance")
+    transfer = _section(report, "transfer")
+    compute = _section(report, "compute")
+    best = _section(report, "best_achieved")
+    wilson = acceptance["wilson_95"]
+    if not isinstance(wilson, (list, tuple)) or len(wilson) != 2:
+        raise TypeError("campaign report is missing its Wilson interval")
+    low, high = _num(wilson[0]), _num(wilson[1])
     print(f"benchmark        : {report['benchmark_id']}")
     print(f"candidates       : {report['candidates']}")
-    print(f"reference        : {report['reference_kind']} @ {report['reference_score']:.6f}")
+    print(
+        f"reference        : {report['reference_kind']} @ " f"{_num(report['reference_score']):.6f}"
+    )
     print(
         f"accepted         : {acceptance['accepted']}/{report['candidates']} "
-        f"({acceptance['rate']:.1%}, 95% CI "
-        f"{acceptance['wilson_95'][0]:.1%}-{acceptance['wilson_95'][1]:.1%})"
+        f"({_num(acceptance['rate']):.1%}, 95% CI {low:.1%}-{high:.1%})"
     )
     print(f"transferred      : {transfer['transferred']}/{transfer['evaluated']}")
     print(
-        f"best achieved    : {report['best_achieved']['score']} "
-        f"(delta {report['best_achieved']['delta_vs_reference']:+.6f})"
+        f"best achieved    : {_num(best['score']):.6f} "
+        f"(delta {_num(best['delta_vs_reference']):+.6f})"
     )
     print(
         f"compute          : {compute['benchmark_runs']} benchmark runs, "
-        f"{compute['wall_clock_seconds']:.0f}s wall clock"
+        f"{_num(compute['wall_clock_seconds']):.0f}s wall clock"
     )
 
 
