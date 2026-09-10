@@ -30,7 +30,6 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
-from typing import Any
 
 from core.research.attempt_ledger import log_attempt
 
@@ -40,6 +39,20 @@ SENSITIVITY_TOLERANCE = 1e-9
 REPRODUCTION_TOLERANCE = 1e-9
 DEFAULT_PROBES = 5
 DEFAULT_SEEDS = (42, 7, 123)
+
+
+def _as_float(value: object) -> float:
+    """Narrow a JSON-shaped value to a float instead of leaving it untyped."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    raise TypeError(f"expected a number, got {type(value).__name__}")
+
+
+def _as_int(value: object) -> int:
+    """Narrow a JSON-shaped value to an int."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    raise TypeError(f"expected an integer, got {type(value).__name__}")
 
 
 @dataclass(frozen=True)
@@ -65,7 +78,7 @@ class SensitivityReport:
     def mutations_applied(self) -> int:
         return sum(self.mutation_counts)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "benchmark_id": self.benchmark_id,
             "seed": self.seed,
@@ -105,7 +118,7 @@ class ReferenceCheck:
     def reproduces(self) -> bool:
         return abs(self.delta) <= self.tolerance
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "benchmark_id": self.benchmark_id,
             "seed": self.seed,
@@ -119,20 +132,20 @@ class ReferenceCheck:
 
 def check_reference_validity(
     benchmark: ModuleType,
-    champion: dict[str, Any],
+    champion: dict[str, object],
     *,
     tolerance: float = REPRODUCTION_TOLERANCE,
 ) -> ReferenceCheck:
     """Re-run the champion's own seed locally and report whether it reproduces."""
     from tools.non_ai_baseline import evaluate_plan
 
-    seed = int(champion["seed"])
+    seed = _as_int(champion["seed"])
     local = evaluate_plan(benchmark, (seed,), None)
     return ReferenceCheck(
         benchmark_id=str(benchmark.BENCHMARK_ID),
         seed=seed,
-        champion_score=float(champion["score"]),
-        local_score=float(local["score"]),
+        champion_score=_as_float(champion["score"]),
+        local_score=_as_float(local["score"]),
         tolerance=tolerance,
     )
 
@@ -151,7 +164,7 @@ class CandidateOutcome:
     heldout_per_seed: dict[str, float] = field(default_factory=dict)
     heldout_transferred: bool | None = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "candidate": self.index,
             "accepted": self.accepted,
@@ -186,7 +199,7 @@ def binomial_interval(successes: int, trials: int) -> tuple[float, float]:
     return (max(0.0, centre - margin), min(1.0, centre + margin))
 
 
-def _seed_scores(result: dict[str, Any]) -> dict[str, float]:
+def _seed_scores(result: dict[str, object]) -> dict[str, float]:
     """Pull the per-seed score map out of an ``evaluate_plan`` result."""
     per_seed = result.get("per_seed")
     if not isinstance(per_seed, dict):
@@ -228,18 +241,18 @@ def probe_operator_sensitivity(
             mutation_strength=mutation_strength,
         )
         result = evaluate_plan(benchmark, (seed,), plan)
-        scores.append(float(result["score"]))
+        scores.append(_as_float(result["score"]))
         counts.append(len(plan.to_dict().get("mutations", [])))
     return SensitivityReport(
         benchmark_id=str(benchmark.BENCHMARK_ID),
         seed=seed,
-        baseline_score=float(baseline["score"]),
+        baseline_score=_as_float(baseline["score"]),
         probe_scores=tuple(scores),
         mutation_counts=tuple(counts),
     )
 
 
-def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
+def _append_jsonl(path: Path, payload: dict[str, object]) -> None:
     """Append one record, flushing immediately so interruption keeps the trace."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
@@ -253,7 +266,7 @@ def run_campaign(
     candidates: int,
     seeds: tuple[int, ...] = DEFAULT_SEEDS,
     heldout: ModuleType | None = None,
-    reference: dict[str, Any] | None = None,
+    reference: dict[str, object] | None = None,
     target: str = "composable",
     mutation_rate: float = 0.3,
     mutation_strength: float = 0.15,
@@ -261,7 +274,7 @@ def run_campaign(
     results_dir: Path | None = None,
     ledger_path: str | Path | None = None,
     reference_check: ReferenceCheck | None = None,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Run the control arm, re-score acceptances held-out, and publish the trace.
 
     ``reference`` is the champion record the acceptance rule compares against.
@@ -283,6 +296,9 @@ def run_campaign(
     benchmark_runs += len(seeds)
     comparison = reference if reference is not None else baseline
     outcomes: list[CandidateOutcome] = []
+    # The held-out baseline is the same unmutated code on the same seeds every
+    # time, so it is measured once on first use rather than per acceptance.
+    heldout_baseline: dict[str, object] | None = None
 
     for index in range(1, candidates + 1):
         plan = _plan_for(
@@ -301,17 +317,19 @@ def run_campaign(
         heldout_seeds: dict[str, float] = {}
         transferred: bool | None = None
         if accepted and heldout is not None:
-            heldout_baseline = evaluate_plan(heldout, seeds, None)
+            if heldout_baseline is None:
+                heldout_baseline = evaluate_plan(heldout, seeds, None)
+                benchmark_runs += len(seeds)
             heldout_result = evaluate_plan(heldout, seeds, plan)
-            benchmark_runs += 2 * len(seeds)
-            heldout_score = float(heldout_result["score"])
+            benchmark_runs += len(seeds)
+            heldout_score = _as_float(heldout_result["score"])
             heldout_seeds = _seed_scores(heldout_result)
             transferred = majority_improvement(heldout_result, heldout_baseline)
 
         outcome = CandidateOutcome(
             index=index,
             accepted=accepted,
-            score=float(result["score"]),
+            score=_as_float(result["score"]),
             per_seed=_seed_scores(result),
             mutation_digest=result.get("mutation_digest"),
             runtime_seconds=time.perf_counter() - candidate_started,
@@ -328,7 +346,7 @@ def run_campaign(
             benchmark_id=str(benchmark.BENCHMARK_ID),
             verdict="accepted" if accepted else "rejected",
             candidate_score=outcome.score,
-            champion_score=float(comparison["score"]),
+            champion_score=_as_float(comparison["score"]),
             seed=list(seeds),
             config_hash=result.get("config_hash"),
             agent_id=CONTROL_ARM_AGENT_ID,
@@ -360,15 +378,15 @@ def summarize_campaign(
     benchmark_id: str,
     heldout_id: str | None,
     seeds: tuple[int, ...],
-    baseline: dict[str, Any],
-    comparison: dict[str, Any],
+    baseline: dict[str, object],
+    comparison: dict[str, object],
     reference_kind: str,
     outcomes: list[CandidateOutcome],
     reference_check: ReferenceCheck | None = None,
     wall_clock_seconds: float,
     benchmark_runs: int,
     trace_path: Path,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Report the campaign against its four preregistered criteria."""
     accepted = [outcome for outcome in outcomes if outcome.accepted]
     transferred = [outcome for outcome in accepted if outcome.heldout_transferred]
@@ -383,8 +401,8 @@ def summarize_campaign(
         "seeds": list(seeds),
         "candidates": len(outcomes),
         "reference_kind": reference_kind,
-        "reference_score": float(comparison["score"]),
-        "baseline_score": float(baseline["score"]),
+        "reference_score": _as_float(comparison["score"]),
+        "baseline_score": _as_float(baseline["score"]),
         "acceptance": {
             "accepted": len(accepted),
             "rate": len(accepted) / len(outcomes) if outcomes else 0.0,
@@ -398,7 +416,7 @@ def summarize_campaign(
         "best_achieved": {
             "score": best.score if best else None,
             "candidate": best.index if best else None,
-            "delta_vs_reference": (best.score - float(comparison["score"]) if best else None),
+            "delta_vs_reference": (best.score - _as_float(comparison["score"]) if best else None),
         },
         "score_distribution": {
             "mean": statistics.fmean(scores) if scores else None,
