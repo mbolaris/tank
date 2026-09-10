@@ -444,7 +444,7 @@ actionable starter task.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Re-measured 2026-07-28: **227 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **653 plain `Any` occurrences** across `core/`. Both
+`-> Any`, `[Any]`) and **658 plain `Any` occurrences** across `core/`. Both
 
 
 went *up* since earlier counts — `core/` grew faster than the
@@ -1260,11 +1260,77 @@ the intended design at all; if it is, the threshold and the cohesion branch need
 a multi-fish instrument (the gym cannot see them). `ComposableBehavior` stays
 the reference oracle either way; do not delete it here.
 
+**That multi-fish instrument now exists, and it answers the question.**
+`core/foraging/school_gym.py` runs `SCHOOL_SIZE` fish that start in one tight
+cluster while every wave scatters one food item to each of four stations, with
+food that expires. A school that spreads out takes all four; a school that
+stays together converges on the nearest and the other three rot. Both travel
+about the same distance, so what separates them is distribution — the branch
+12.4 could not see. `core/foraging/school_arms.py` runs the *same four arms*,
+so the numbers stay comparable. Reproduce with:
+
+```bash
+python tools/compare_school_arms.py --urgency-sweep "0.0 0.2 0.35 0.5 0.7 1.0"
+python tools/compare_school_arms.py --genome-seeds "9 10 11 12 13 14 15 16" \
+    --episode-seeds "2 3 8 13 17 23 29 37" --urgency-sweep "0.35 0.7 1.0"
+```
+
+8 genomes x 8 episode seeds; reference arms carry no genome:
+
+| arm | cohort A | cohort B | mean neighbour distance (A) |
+|---|---|---|---|
+| `oracle` — one fish per station | 1.000000 | 1.000000 | 274px |
+| `greedy_shoal` — each fish chases the best item | 0.630125 | 0.661294 | **33px** |
+| `random_walk` | 0.112859 | 0.122395 | 249px |
+| `composable` | 0.887805 | 0.814420 | 239px |
+| `graph` — bare, default urgency 0.35 | 0.391404 | 0.389089 | 163px |
+| `production` — arbiter, flag off | 0.887805 | 0.814420 | 239px |
+| `production_graph` — arbiter, flag on | 0.895741 (+0.0079) | 0.827928 (+0.0135) | 245px |
+
+**The urgency sweep is the result that matters, and it is monotonic:**
+
+| urgency threshold | 0.00 | 0.20 | 0.35 (default) | 0.50 | 0.70 | 1.00 |
+|---|---|---|---|---|---|---|
+| cohort A | 0.000000 | 0.249581 | 0.391404 | 0.600279 | 0.677706 | 0.771684 |
+| cohort B | — | — | 0.389089 | — | 0.706879 | 0.769648 |
+
+Every step *away* from social cohesion improves the score, with no optimum in
+between; at threshold 0.0 the graph never forages at all and collects nothing.
+So on foraging, the cohesion branch does not earn its place, and the shipped
+0.35 default sits near the bad end of its own range.
+
+**Read that with its boundary, though.** This gym rewards dispersal by
+construction and contains no predator, which is the thing schooling is
+actually for. What is shown is narrow and solid: cohesion is a *foraging*
+cost, monotonically. What is not shown is whether it pays for itself in
+survival — that needs a predator instrument, and this one cannot stand in for
+it. The `greedy_shoal` row is the same point from the other side: at 33px mean
+separation it is the clumping failure mode made visible, and it scores 0.63
+against an attainable 1.0.
+
+**The arbiter's yield-on-cohesion is doing real work.** `production_graph`
+beats `production` on both cohorts (+0.0079 / +0.0135), while the bare `graph`
+scores half of either. The difference is entirely
+`GraphBehaviorConsideration` refusing the graph's leisure-tier output and
+handing back to the composable behavior — the design 12.4 flagged as the
+bottleneck is also what keeps the flag from being harmful.
+
 ### 12.5 Graph mutation + type-safe subgraph crossover — `L` · ★★★
 **Layer 1.** Add param mutation (gauss, as today), node-swap mutation (like the
 enum switch / policy-ID swap), and low-probability *structural* mutation
 (add/remove/rewire an edge, splice a subgraph) behind a heritable
-`structural_mutation_rate` meta-gene (reuse `core/genetics/trait.py`). Add
+`structural_mutation_rate` meta-gene (reuse `core/genetics/trait.py`).
+
+*Before spending mutation budget on this topology:* 12.4's school-gym sweep
+found the graph's social-cohesion branch monotonically harmful to foraging,
+with the shipped 0.35 urgency threshold near the bad end of its range. Either
+let mutation reach the threshold (it is already an evolvable
+`NodeParameterSpec`, so selection can find this itself — which is the more
+interesting experiment), or fix the topology first and say why. Do not
+structurally evolve around a branch already measured as a cost without a
+predator instrument that shows what it buys.
+
+Add
 type-safe subgraph crossover — spliceable only where port types match, which
 avoids the classic GP nonsensical-recombination failure. **Go/no-go gate:** does
 the graph encoding raise directional trait drift on

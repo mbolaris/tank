@@ -55,8 +55,9 @@ from __future__ import annotations
 import copy
 import math
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from core.behavior.tank_adapter import build_tank_behavior_observation
 from core.foraging.gym import (
@@ -100,6 +101,7 @@ __all__ = [
     "PRODUCTION",
     "PRODUCTION_GRAPH",
     "ArmComparison",
+    "build_arm_policy",
     "build_production_policy",
     "compare_arms",
     "evaluate_arm",
@@ -196,6 +198,31 @@ def _with_urgency_threshold(graph: BehaviorGraph, threshold: float) -> BehaviorG
     return _BehaviorGraph.from_dict(payload)
 
 
+@runtime_checkable
+class _ProvidesArbiterSurface(Protocol):
+    """A world whose fish already carry everything the arbiter reads.
+
+    The single-fish gym provides none of this and gets it installed. The school
+    gym (:mod:`core.foraging.school_gym`) provides all of it with per-fish
+    values, and installing over those would be actively wrong twice over:
+    every member would be given ``fish_id = 1``, and the graph's school vectors
+    filter neighbours by id, so each fish would see an empty school - exactly
+    the blindness the school gym exists to remove.
+    """
+
+    vel: object
+    age: int
+    fish_id: int
+    last_target_memory_decisions: dict[str, object]
+
+
+@runtime_checkable
+class _ProvidesSchoolLookup(Protocol):
+    """An environment that can already answer "who is nearby"."""
+
+    def nearby_evolving_agents(self, fish: object, radius: float) -> Sequence[object]: ...
+
+
 def _install_arbiter_surface(fish: Any) -> None:
     """Give the gym's minimal fish and environment the surface a tank fish has.
 
@@ -208,8 +235,19 @@ def _install_arbiter_surface(fish: Any) -> None:
 
     Called exactly once per episode, from the owning policy's first frame -
     the attributes then carry real state forward, which is what ``vel`` and
-    ``age`` are for.
+    ``age`` are for. A world that already supplies the surface keeps its own
+    values: installing over them would replace the world's truth with this
+    module's guess at it.
     """
+    if not isinstance(fish, _ProvidesArbiterSurface):
+        _install_fish_surface(fish)
+    if not isinstance(fish.environment, _ProvidesSchoolLookup):
+        # Only the single-fish gym lands here, and for it the honest answer is
+        # that there is no school. A multi-fish world answers for itself.
+        fish.environment.nearby_evolving_agents = lambda *_args, **_kwargs: []
+
+
+def _install_fish_surface(fish: Any) -> None:
     fish.vel = Vector2(0.0, 0.0)
     fish.age = 0
     fish.fish_id = 1
@@ -221,7 +259,6 @@ def _install_arbiter_surface(fish: Any) -> None:
     # this frame", which is what target_memory_enabled=False produces in
     # production too.
     fish.last_target_memory_decisions = {}
-    fish.environment.nearby_evolving_agents = lambda *_args, **_kwargs: []
 
 
 class _ArmPolicy:
@@ -349,6 +386,30 @@ def build_production_policy(
     return _ProductionArmPolicy(genome, seed, config, genome_code_pool)
 
 
+def build_arm_policy(
+    arm: str,
+    genome: Genome,
+    seed: int,
+    config: SimulationConfig,
+    *,
+    urgency_threshold: float | None = None,
+) -> _GymPolicy:
+    """Build the controller for one arm.
+
+    Separated from :func:`evaluate_arm` so other instruments can drive the same
+    four arms without re-deriving them. The school gym
+    (:mod:`core.foraging.school_gym`) builds one of these per fish, which is
+    what makes its scores comparable with this gym's.
+    """
+    if arm == COMPOSABLE:
+        return _ComposableArmPolicy(genome, seed, config)
+    if arm == GRAPH:
+        return _GraphArmPolicy(genome, seed, config, urgency_threshold)
+    if arm in (PRODUCTION, PRODUCTION_GRAPH):
+        return _ProductionArmPolicy(genome, seed, config)
+    raise ValueError(f"Unknown foraging-gym arm: {arm!r}")
+
+
 def evaluate_arm(
     arm: str,
     genome: Genome,
@@ -371,15 +432,9 @@ def evaluate_arm(
     # reproduce.
     episode_genome = copy.deepcopy(genome)
 
-    policy: _GymPolicy
-    if arm == COMPOSABLE:
-        policy = _ComposableArmPolicy(episode_genome, seed, config)
-    elif arm == GRAPH:
-        policy = _GraphArmPolicy(episode_genome, seed, config, urgency_threshold)
-    elif arm in (PRODUCTION, PRODUCTION_GRAPH):
-        policy = _ProductionArmPolicy(episode_genome, seed, config)
-    else:
-        raise ValueError(f"Unknown foraging-gym arm: {arm!r}")
+    policy = build_arm_policy(
+        arm, episode_genome, seed, config, urgency_threshold=urgency_threshold
+    )
 
     result = run_episode(schedule, policy, seed)
     ratio = result.energy_collected / ceiling if ceiling else 0.0
