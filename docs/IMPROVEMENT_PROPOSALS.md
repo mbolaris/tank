@@ -225,18 +225,60 @@ machine-dependent float details flip.
   by time.time(); engine.start_time), runner CPU model differences, glibc
   version differences between runner images.
 
-**Instrumentation status.** Benchmark fingerprint streams now record exact and
-6-decimal-rounded snapshot hashes, entity-type component hashes/counts, and an
-environment manifest every 100 frames. Ecosystem champion verification runs
-twice, compares the streams within CI, and uploads both streams for comparison
-with local runs. Use `tools/compare_fingerprint_streams.py` to report the first
-exact and rounded divergent frames.
+**Instrumentation status — the five-part identification is now complete.**
+Benchmark fingerprint streams (v2) record, every interval: exact and
+6-decimal-rounded snapshot hashes, entity-type component hashes/counts, an
+environment manifest, **a digest per entity id**, **a digest per (entity type,
+state field)**, **a digest of every distinct `random.Random` state**, and **a
+digest after every pipeline step** plus one before the first step. Ecosystem
+champion verification runs twice, compares the streams within CI, and uploads
+both streams for comparison with local runs.
+`tools/compare_fingerprint_streams.py` renders the identification review #3
+asked for — frame, phase, entity, RNG stream, state field — instead of a digest
+mismatch:
 
-**Remaining plan.** Use the uploaded fingerprint streams to compare two CI runs
-and a local run, find the first divergent frame, inspect that frame's code path,
-and eliminate the environment input. Then re-land the food-targeting
-improvement (the revert preserved it in git history at `e1fed26`; it beat both
-tank champions on every local environment).
+```
+exact  : diverged at frame 1500
+  phase:  environment  [step_digests]
+  rng:    verdict=float_drift diverged_streams=none
+          RNG states match at this checkpoint, so both runs made the same
+          decisions and drew the same numbers; the difference is arithmetic.
+  entity: 1 changed: 1
+  field:  fish: energy
+```
+
+**The RNG verdict is the load-bearing part.** Identical RNG states with
+differing snapshots means both runs took the same branches and drew the same
+numbers, so the difference is *arithmetic* — a libm question (see
+`docs/CROSS_PLATFORM_DIVERGENCE.md`). Differing RNG states means a decision
+went the other way and the draw schedules desynchronised, which is a
+control-flow question. Those two need entirely different investigations, and
+the old report could not tell them apart.
+
+**Two-pass workflow.** Checkpoints every N frames locate the divergence to a
+window and name the entity, field and RNG verdict immediately; the phase reads
+`carried_in_from_earlier_frame` whenever the difference predates the checkpoint
+frame. Re-run both sides with `--fingerprint-every 1` across that window to
+land on the exact phase. The report says so itself when it applies.
+
+*Validated by construction, not by assertion:* `survival_5k` was re-run with
+(a) a 1e-9 nudge to one fish's energy and (b) one extra draw burned from the
+shared RNG. The first is reported as `float_drift`, one changed entity, field
+`energy`; the second as `rng_desync` on the `world` stream with 235 entities
+changed. `tests/test_fingerprint_stream.py` pins the same behaviour against the
+real engine, including that recording does not perturb the run it measures.
+
+**Remaining plan.** The diagnostics are now sufficient; what is left needs
+*two differing machines*, which a single dev box cannot supply. Compare the
+uploaded CI streams against a local run, read the verdict, and act on it:
+`rng_desync` points at a decision that consumed different draws (bisect the
+branch), `float_drift` points at arithmetic (bisect the libm call, starting
+from the eight score-sensitive `math.cos` sites in
+`docs/CROSS_PLATFORM_DIVERGENCE.md`). Narrow the phase with a
+`--fingerprint-every 1` re-run over the window, eliminate the environment
+input, then re-land the food-targeting improvement (the revert preserved it in
+git history at `e1fed26`; it beat both tank champions on every local
+environment).
 
 **Review #3 (2026-07-26) made this the single highest-priority item in the
 repo** and sharpened the acceptance bar in two ways worth adopting:
@@ -252,6 +294,9 @@ repo** and sharpened the acceptance bar in two ways worth adopting:
    component hashes; *phase*, *RNG stream identity*, and *which state field*
    are the gaps. A gate that only says "the digests differ" hands the next
    agent the same multi-day bisect this entry has already cost once.
+   **All three gaps are now closed** (see the instrumentation status above);
+   what remains of this item is running the comparison across machines, not
+   building the means to.
 
 Its reasoning for the priority is the ALife-specific one, and it is correct:
 for an ordinary game, run-to-run float divergence is tolerable; for an

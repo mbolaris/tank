@@ -228,12 +228,22 @@ def main():
                 sys.exit(1)
 
             if args.fingerprint_out:
-                from core.replay.fingerprint_stream import compare_fingerprint_streams
+                from core.replay.fingerprint_diff import (
+                    compare_fingerprint_streams,
+                    format_divergence_report,
+                )
 
                 comparison = compare_fingerprint_streams(
                     args.fingerprint_out, second_fingerprint_path(args.fingerprint_out)
                 )
-                print(f"Fingerprint comparison: {json.dumps(comparison, sort_keys=True)}")
+                if comparison["exact"] is None and comparison["rounded"] is None:
+                    print("Fingerprint comparison: identical (exact and rounded).")
+                else:
+                    # Print the full five-part identification only when there is
+                    # something to identify; a passing run should not bury its
+                    # log under a per-entity dump.
+                    print("Fingerprint comparison:")
+                    print(format_divergence_report(comparison))
                 if comparison["rounded"] is not None:
                     print("FATAL: Rounded snapshot fingerprints diverged.", file=sys.stderr)
                     sys.exit(1)

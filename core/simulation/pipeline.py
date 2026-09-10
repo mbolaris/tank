@@ -22,6 +22,10 @@ if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
 
 
+# Synthetic step name reported to observers before the first real step.
+FRAME_ENTRY_STEP = "frame_entry"
+
+
 @dataclass
 class FrameContext:
     """Explicit per-frame state passed through pipeline steps.
@@ -73,6 +77,21 @@ class EnginePipeline:
             steps: List of PipelineStep instances in execution order
         """
         self._steps = steps.copy()
+        self._step_observer: Callable[[str, SimulationEngine], None] | None = None
+
+    def set_step_observer(self, observer: Callable[[str, SimulationEngine], None] | None) -> None:
+        """Watch each step as it completes, for divergence attribution.
+
+        The determinism gate needs to name the *phase* a divergence appeared
+        in, not just the frame (see docs/IMPROVEMENT_PROPOSALS.md 1.0), and a
+        phase is a pipeline step. Observers must be read-only: this seam runs
+        inside the simulation loop, so anything that mutates state or consumes
+        RNG here changes the very trajectory it is meant to describe.
+
+        Passing None removes the observer. Unobserved pipelines pay one
+        ``is not None`` check per step.
+        """
+        self._step_observer = observer
 
     @property
     def steps(self) -> list[PipelineStep]:
@@ -98,8 +117,17 @@ class EnginePipeline:
             engine: The SimulationEngine instance to update
         """
         ctx = FrameContext()
+        observer = self._step_observer
+        if observer is not None:
+            # A digest taken before any step runs is what separates "this phase
+            # introduced the difference" from "the frame started out different".
+            # Without it the first step is always the prime suspect and never
+            # provably the culprit.
+            observer(FRAME_ENTRY_STEP, engine)
         for step in self._steps:
             step.fn(engine, ctx)
+            if observer is not None:
+                observer(step.name, engine)
 
 
 # =============================================================================
