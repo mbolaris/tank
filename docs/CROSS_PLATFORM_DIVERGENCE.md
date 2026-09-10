@@ -159,3 +159,19 @@ gh workflow run bench.yml -f float_fingerprint=true   # on CI, then read the log
 Identical lines exonerate a primitive; differing lines are a concrete
 mechanism. The tool checks primitives, not the simulation - matching output
 does not prove a benchmark agrees, only that this explanation is not the cause.
+
+To go the other way - from a benchmark that disagrees to the reason - compare
+the two runs' fingerprint streams:
+
+```bash
+python tools/run_bench.py benchmarks/tank/ecosystem_health_10k.py --seed 42 \
+    --fingerprint-out run.jsonl --fingerprint-every 100
+python tools/compare_fingerprint_streams.py run_a.jsonl run_b.jsonl
+```
+
+The report names the frame, phase, entity, state field and RNG stream, and -
+most usefully here - says whether the RNG states still match. They do only
+when both runs took the same branches and drew the same numbers, which is
+exactly the case this document is about: an arithmetic difference, so the
+`math.cos` sites above are the place to look. Differing RNG states mean a
+decision changed instead, and this document is the wrong lead.
