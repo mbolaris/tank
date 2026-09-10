@@ -87,7 +87,7 @@ def main() -> None:
             mutation_strength=args.mutation_strength,
         )
         (results_dir / f"{slug}_sensitivity.json").write_text(
-            json.dumps(sensitivity.to_dict(), indent=2), encoding="utf-8"
+            json.dumps(sensitivity.to_dict(), indent=2) + "\n", encoding="utf-8"
         )
         if not sensitivity.responsive:
             print(
@@ -108,7 +108,7 @@ def main() -> None:
     if champion is not None:
         reference_check = check_reference_validity(benchmark, champion)
         (results_dir / f"{slug}_reference_check.json").write_text(
-            json.dumps(reference_check.to_dict(), indent=2), encoding="utf-8"
+            json.dumps(reference_check.to_dict(), indent=2) + "\n", encoding="utf-8"
         )
         if not reference_check.reproduces:
             print(
@@ -139,7 +139,7 @@ def main() -> None:
         report["sensitivity"] = sensitivity.to_dict()
 
     (results_dir / f"{slug}_campaign.json").write_text(
-        json.dumps(report, indent=2), encoding="utf-8"
+        json.dumps(report, indent=2) + "\n", encoding="utf-8"
     )
 
     acceptance = report["acceptance"]
