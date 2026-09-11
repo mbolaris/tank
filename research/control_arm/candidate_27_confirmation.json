@@ -1,0 +1,49 @@
+{
+  "benchmark_id": "tank/survival_5k",
+  "seeds": [
+    1,
+    2,
+    999
+  ],
+  "mean_delta": -145.51142259426152,
+  "invalidated_seeds": [
+    2
+  ],
+  "regressed_seeds": [
+    2
+  ],
+  "confirmed": false,
+  "outcomes": [
+    {
+      "seed": 1,
+      "baseline_score": 666.114927997637,
+      "candidate_score": 743.0539700392104,
+      "delta": 76.93904204157343,
+      "baseline_valid": true,
+      "candidate_valid": true,
+      "invalidated": false,
+      "candidate_invalid_reason": null
+    },
+    {
+      "seed": 2,
+      "baseline_score": 513.473309824358,
+      "candidate_score": 0.0,
+      "delta": -513.473309824358,
+      "baseline_valid": true,
+      "candidate_valid": false,
+      "invalidated": true,
+      "candidate_invalid_reason": "starvation_rate 0.9778 >= maximum valid rate 0.9500"
+    },
+    {
+      "seed": 999,
+      "baseline_score": 0.0,
+      "candidate_score": 0.0,
+      "delta": 0.0,
+      "baseline_valid": false,
+      "candidate_valid": false,
+      "invalidated": false,
+      "candidate_invalid_reason": "starvation_rate 0.9835 >= maximum valid rate 0.9500"
+    }
+  ],
+  "candidate": 27
+}
