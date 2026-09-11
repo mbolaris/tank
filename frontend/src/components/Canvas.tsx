@@ -9,25 +9,19 @@ import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { ImageLoader } from '../utils/ImageLoader';
 import {
-    DEFAULT_CAMERA,
-    MAX_ZOOM,
-    MIN_ZOOM,
     cameraForTarget,
     cameraScreenToWorld,
     getCameraViewport,
     isDefaultCamera,
-    panByScreenDelta,
-    zoomAtFraction,
-    zoomByStep,
     type Camera,
 } from './camera';
+import { CameraControls } from './CameraControls';
+import { CanvasError } from './CanvasError';
+import { useCameraInteractions } from './useCameraInteractions';
 import { findEntityAtPoint } from './canvasEntityHitTest';
+import { findDraggableObjectAt } from './buildObjectHitTest';
 import { fitWorldToContainer, getRenderDpr } from './canvasGeometry';
 
-/** Pointer travel before a press counts as a pan rather than a click. */
-const PAN_THRESHOLD_PX = 4;
-/** Wheel delta -> zoom factor, via exp() so trackpads and mice both feel linear. */
-const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 /** Upper bound on how much larger the offscreen buffer may get when zoomed.
  *  Without supersampling, zooming magnifies a canvas-sized bitmap and just
  *  shows bigger pixels; rendering the world into a proportionally larger
@@ -159,27 +153,15 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
     // rather than fighting it, and the controls hide instead of reporting a
     // zoom the view is not using.
     const following = followEntityId !== null && followEntityId !== undefined;
-
-    // Free-look camera. Kept in a ref for the render loop (which must not
-    // re-subscribe every frame) and in state for the reset affordance.
-    const [camera, setCamera] = useState<Camera>(DEFAULT_CAMERA);
-    const cameraRef = useRef(camera);
-    const panOriginRef = useRef<{ x: number; y: number } | null>(null);
-    // A drag that moved is a pan, not a click; without this, releasing after
-    // dragging the view would also select whatever ended up under the cursor.
-    const didPanRef = useRef(false);
-
-    const applyCamera = useCallback((next: (prev: Camera) => Camera) => {
-        setCamera((prev) => next(prev));
-    }, []);
+    const { camera, cameraRef, applyCamera, resetCamera, beginPan, consumePanFlag } =
+        useCameraInteractions(canvasRef, following);
 
     /** The camera actually on screen: following a fish overrides free look. */
     const resolveCamera = useCallback((): Camera => {
-        const followed = followEntityId !== null && followEntityId !== undefined
-            ? (state?.snapshot?.entities ?? state?.entities ?? []).find((entity) => entity.id === followEntityId)
-            : undefined;
+        const entities = state?.snapshot?.entities ?? state?.entities ?? [];
+        const followed = following ? entities.find((entity) => entity.id === followEntityId) : undefined;
         return followed ? cameraForTarget(followed) : cameraRef.current;
-    }, [followEntityId, state]);
+    }, [cameraRef, following, followEntityId, state]);
 
     const getWorldPoint = (event: { clientX: number; clientY: number }) => {
         const canvas = canvasRef.current;
@@ -190,10 +172,7 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
     };
 
     const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-        if (didPanRef.current) {
-            didPanRef.current = false;
-            return;
-        }
+        if (consumePanFlag()) return;
         if (!state || error) return;
         const point = getWorldPoint(event);
         if (!point) return;
@@ -221,24 +200,15 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
     const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
         // Build mode owns left-drag for moving objects, so free-look panning
         // only claims the gesture outside it.
-        if (!buildMode && !following && event.button === 0) {
-            panOriginRef.current = { x: event.clientX, y: event.clientY };
-            didPanRef.current = false;
-        }
+        if (!buildMode) beginPan(event);
         if (!buildMode || buildPlacementActive) return;
         const point = getWorldPoint(event);
         if (!point || !state) return;
         const entities = state.snapshot?.entities ?? state.entities ?? [];
-        const objectTypes = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
-        for (let i = entities.length - 1; i >= 0; i -= 1) {
-            const entity = entities[i];
-            if (!objectTypes.has(entity.type)) continue;
-            if (point.worldX >= entity.x && point.worldX <= entity.x + entity.width && point.worldY >= entity.y && point.worldY <= entity.y + entity.height) {
-                draggingObjectIdRef.current = entity.id;
-                onBuildDragStart?.(entity.id);
-                return;
-            }
-        }
+        const object = findDraggableObjectAt(entities, point.worldX, point.worldY);
+        if (!object) return;
+        draggingObjectIdRef.current = object.id;
+        onBuildDragStart?.(object.id);
     };
 
     const handleCanvasMouseUp = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -254,56 +224,6 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         const point = getWorldPoint(event);
         if (point) onBuildPointerMove(point.worldX, point.worldY);
     };
-
-    // Panning tracks the window rather than the canvas: a drag that leaves the
-    // tank should keep panning until the button comes up, not stick halfway.
-    useEffect(() => {
-        const onMove = (event: MouseEvent) => {
-            const origin = panOriginRef.current;
-            const canvas = canvasRef.current;
-            if (!origin || !canvas) return;
-            const dx = event.clientX - origin.x;
-            const dy = event.clientY - origin.y;
-            if (!didPanRef.current && Math.hypot(dx, dy) < PAN_THRESHOLD_PX) return;
-            didPanRef.current = true;
-            panOriginRef.current = { x: event.clientX, y: event.clientY };
-            const rect = canvas.getBoundingClientRect();
-            applyCamera((prev) => panByScreenDelta(prev, dx, dy, rect.width, rect.height));
-        };
-        const onUp = () => {
-            panOriginRef.current = null;
-        };
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
-        return () => {
-            window.removeEventListener('mousemove', onMove);
-            window.removeEventListener('mouseup', onUp);
-        };
-    }, [applyCamera]);
-
-    // Wheel zoom needs a non-passive listener to stop the page scrolling, which
-    // React's onWheel cannot guarantee.
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const onWheel = (event: WheelEvent) => {
-            if (following) return;
-            event.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            if (rect.width <= 0 || rect.height <= 0) return;
-            const factor = Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY);
-            applyCamera((prev) =>
-                zoomAtFraction(
-                    prev,
-                    prev.zoom * factor,
-                    (event.clientX - rect.left) / rect.width,
-                    (event.clientY - rect.top) / rect.height,
-                ),
-            );
-        };
-        canvas.addEventListener('wheel', onWheel, { passive: false });
-        return () => canvas.removeEventListener('wheel', onWheel);
-    }, [applyCamera, following]);
 
     // Refs to hold latest state for the animation loop
     const stateRef = useRef(state);
@@ -333,7 +253,7 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         buildModeRef.current = buildMode;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, camera, showEffects, showSoccer, viewMode, worldTypeProp, buildGhost, buildMode]);
+    }, [cameraRef, state, imagesLoaded, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, camera, showEffects, showSoccer, viewMode, worldTypeProp, buildGhost, buildMode]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -516,7 +436,7 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
                 followCanvasRef.current = null;
             }
         };
-    }, [width, height, setErrorOnce, error, viewMode]); // Stable dependencies only
+    }, [cameraRef, width, height, setErrorOnce, error, viewMode]); // Stable dependencies only
 
 
     // React dev-mode profiling can accumulate performance entries during long sessions.
@@ -539,27 +459,7 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         return () => clearInterval(interval);
     }, []);
 
-    if (error) {
-        return (
-            <div style={{
-                width,
-                height,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#1a0000',
-                color: '#ff5555',
-                flexDirection: 'column',
-                padding: 20,
-                border: '1px solid #ff5555',
-                borderRadius: 8,
-                boxSizing: 'border-box'
-            }}>
-                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>Canvas Error</div>
-                <div style={{ fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{error}</div>
-            </div>
-        );
-    }
+    if (error) return <CanvasError message={error} width={width} height={height} />;
 
     const canvasEl = (
         <canvas
@@ -586,83 +486,15 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
 
     if (!responsive) return canvasEl;
 
-    const atFullView = isDefaultCamera(camera);
-    const zoomButtonStyle: CSSProperties = {
-        width: 26,
-        height: 26,
-        display: 'grid',
-        placeItems: 'center',
-        border: '1px solid rgba(148, 163, 184, 0.28)',
-        borderRadius: 7,
-        background: 'rgba(15, 23, 42, 0.72)',
-        color: 'var(--color-text-main, #e2e8f0)',
-        font: '600 14px/1 var(--font-mono, monospace)',
-        cursor: 'pointer',
-    };
-
     return (
         <div
             ref={containerRef}
             style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
             {canvasEl}
-            {!following && <div
-                // Sits quietly until the view is actually moved; scroll-to-zoom
-                // over a canvas is conventional enough to carry discovery.
-                style={{
-                    position: 'absolute',
-                    right: 12,
-                    bottom: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: 5,
-                    borderRadius: 10,
-                    background: 'rgba(2, 6, 23, 0.45)',
-                    opacity: atFullView ? 0.45 : 1,
-                    transition: 'opacity 140ms ease',
-                }}
-                data-testid="camera-controls"
-            >
-                <button
-                    type="button"
-                    aria-label="Zoom out"
-                    style={zoomButtonStyle}
-                    disabled={camera.zoom <= MIN_ZOOM}
-                    onClick={() => applyCamera((prev) => zoomByStep(prev, 1 / 1.4))}
-                >
-                    −
-                </button>
-                <span
-                    aria-live="polite"
-                    style={{
-                        minWidth: 42,
-                        textAlign: 'center',
-                        color: 'var(--color-text-dim, #94a3b8)',
-                        font: '600 11px/1 var(--font-mono, monospace)',
-                    }}
-                >
-                    {camera.zoom.toFixed(1)}×
-                </span>
-                <button
-                    type="button"
-                    aria-label="Zoom in"
-                    style={zoomButtonStyle}
-                    disabled={camera.zoom >= MAX_ZOOM}
-                    onClick={() => applyCamera((prev) => zoomByStep(prev, 1.4))}
-                >
-                    +
-                </button>
-                <button
-                    type="button"
-                    aria-label="Reset view"
-                    style={{ ...zoomButtonStyle, width: 'auto', padding: '0 9px', fontSize: 11 }}
-                    disabled={atFullView}
-                    onClick={() => setCamera(DEFAULT_CAMERA)}
-                >
-                    Reset
-                </button>
-            </div>}
+            {!following && (
+                <CameraControls camera={camera} onChange={applyCamera} onReset={resetCamera} />
+            )}
         </div>
     );
 }

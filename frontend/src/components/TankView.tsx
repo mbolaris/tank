@@ -37,6 +37,7 @@ import { useLiveEntities } from '../hooks/useLiveEntities';
 import { CONNECTION_STATUS_DISPLAY } from '../utils/connectionStatusDisplay';
 import { PlantIcon } from './ui';
 import styles from './TankView.module.css';
+import stage from './TankStage.module.css';
 
 interface TankViewProps {
     worldId?: string;
@@ -214,7 +215,7 @@ export function TankView({ worldId }: TankViewProps) {
             )}
             {!watchMode && <>
             {/* Single row of compact controls */}
-            <div className={styles.controlBar}>
+            <div className={stage.controlBar}>
                 <ControlPanel
                     onCommand={sendCommand}
                     isConnected={isConnected}
@@ -442,8 +443,8 @@ export function TankView({ worldId }: TankViewProps) {
             </>}
 
             {/* Always-visible Canvas */}
-            <div className={`${styles.sceneWorkspace} ${watchMode ? `${styles.sceneWorkspaceWatch} sceneWorkspaceWatch` : ''}`}>
-                <div className={`canvas-wrapper${watchMode ? ` ${styles.canvasWrapperWatch}` : ''}`}>
+            <div className={`${stage.sceneWorkspace} ${watchMode ? `${stage.sceneWorkspaceWatch} sceneWorkspaceWatch` : ''}`}>
+                <div className={`canvas-wrapper${watchMode ? ` ${stage.canvasWrapperWatch}` : ''}`}>
                     <Canvas
                         state={state}
                         width={1088} height={612} responsive
