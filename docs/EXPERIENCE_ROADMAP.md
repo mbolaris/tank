@@ -26,14 +26,21 @@ not another dense analytical panel.
 
 ## Verified current state
 
-Audited against the repository on 2026-07-11:
+Audited against the repository on 2026-07-11, with individual rows re-checked on
+2026-09-11.
+
+**This table is a snapshot, not a standing truth.** Two of its "Confirmed"
+findings had been fixed without the row being updated, and the same was true of
+an open item in [UI_BACKLOG.md](UI_BACKLOG.md) whose feature was already
+shipped. Re-check a row against the code before building against it; a stale
+row reads exactly like a live one.
 
 | Finding | Status | Repository evidence |
 |---|---|---|
-| Clicking a fish immediately opens transfer | Confirmed | `handleEntityClick` in [`TankView.tsx`](../frontend/src/components/TankView.tsx) opens `TransferDialog` |
+| Clicking a fish immediately opens transfer | **No longer true** (re-checked 2026-09-11) | `handleBuildEntityClick` in [`TankView.tsx`](../frontend/src/components/TankView.tsx) calls `selection.selectEntity`; transfer is behind `onRequestTransfer` on the inspector, which is what the "Adopt now" section below asked for |
 | The default tank view is a dense panel dashboard | Confirmed | Four panels are enabled by default; poker, trends, and genetics are additional toggles |
 | Frame, FPS, population, generation, and plant-energy controls are always exposed | Confirmed | The HUD and control bar are rendered directly by `TankView.tsx` |
-| A second navigation implementation remains | Confirmed | `TankTabs.tsx` and `TankPlayTab.tsx` exist but are not part of the active `TankView` composition |
+| A second navigation implementation remains | **No longer true** (re-checked 2026-09-11) | `TankTabs.tsx` and `TankPlayTab.tsx` no longer exist in the tree |
 | Metrics history must be built | **Already solved** | [`metrics_history.py`](../backend/metrics_history.py), the metrics API, persistence, WebSocket deltas, and `TankTrendsTab.tsx` are live |
 | Generation-based trends must be built | **Already solved** | Trends defaults to a generation axis and can toggle to frames |
 | Ecosystem time-series charts must be built | **Already solved** | Population, births/deaths, mortality, energy, diversity, trait drift, poker ELO, and soccer-rate views exist |
