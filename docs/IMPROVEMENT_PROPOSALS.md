@@ -988,15 +988,58 @@ c34 (+80.15 → **−14.27**) and c38 (+63.20 → **−19.83**).
 checked against the held-out evaluator should be assumed to be measuring
 overfitting until shown otherwise.**
 
-#### Finding 3 — one candidate does look real
+#### Finding 3 — one candidate looked real, and was not — RETRACTED 2026-09-11
 
-c27 improves both: **+118.29 (+17.2%)** on the tuning benchmark and **+25.04
-(+5.6%)** held-out, and it passes the majority rule on both. That is a genuine
-Layer 1 improvement candidate sitting in the trace. Adopting it is deliberately
-**not** part of this entry — this is a Layer 2 measurement PR, and folding a
-parameter change into it would mix the layers the contributing rules keep
-apart. It is left as a follow-up with its mutation plan recorded in
-`research/control_arm/tank_survival_5k_candidates.jsonl`.
+**What this entry originally said:** c27 improves both, **+118.29 (+17.2%)** on
+the tuning benchmark and **+25.04 (+5.6%)** held-out, passing the majority rule
+on each, so it "is a genuine Layer 1 improvement candidate sitting in the
+trace", left as a follow-up to adopt.
+
+**That claim was too strong and is withdrawn.** Taking it up as the follow-up
+was the right instinct and it did not survive the first honest look.
+
+Re-derived from its recorded seed (9028, matching the committed trace
+byte-for-byte) and scored on three seeds it was never selected on:
+
+| benchmark | seeds 1 / 2 / 999 | verdict |
+|---|---|---|
+| `tank/ecosystem_health_10k` | +5.0% / +23.8% / +24.7% | improves on all three |
+| `tank/survival_5k` | +11.6% / **INVALID** / no change | **breaks seed 2** |
+
+On seed 2 the candidate drives the starvation rate from **0.9482 to 0.9778**,
+past `MAX_VALID_STARVATION_RATE = 0.95`, and `survival_5k` gates its own score
+to zero. That is the benchmark reporting that food-seeking broke, and no mean
+improvement buys it back.
+
+It is not a uniformly harmful change, which is what makes it instructive rather
+than merely wrong: on seed 42 the same mutation *cuts* starvation from 0.8632 to
+**0.6033**, a far healthier ecosystem, and it improved `ecosystem_health_10k` on
+all six seeds tried. It has a failure mode, not a defect.
+
+**Two things this leaves behind.**
+
+First, a tooling gap, now closed. Acceptance ranked c27 on the three seeds the
+campaign searched; nothing re-checked it anywhere else, and a candidate can win
+a three-seed mean and still break a fourth.
+`core/research/candidate_confirmation.py` adds that stage, and
+`tools/confirm_control_arm_candidate.py` runs it. Its rule is deliberately not
+"is the mean higher": **invalidating a run that was valid at baseline is
+disqualifying on its own**, because an average is not allowed to outvote a
+benchmark declaring the ecosystem broken. The committed result for c27 is
+`research/control_arm/candidate_27_confirmation.json`, and the tool re-derives
+each plan from its seed and refuses to run if it does not match the trace.
+
+Second, a fact about the tank rather than the candidate. Of six seeds sampled at
+**baseline**, `survival_5k` is already invalid on seed 999 (starvation 0.9834)
+and within 0.3 percentage points of invalid on seed 2 (0.9482). A third of
+sampled seeds sit at or beside the "food-seeking broken" line before anything is
+changed, which is worth knowing before reading any survival_5k delta as a
+verdict on a controller.
+
+**This is the second time in this theme that a result did not survive wider
+checking** — the first being the +8.5% tuning gain that fell to +1.4% held-out.
+Both point the same way: on this benchmark, three seeds rank candidates, they do
+not confirm them.
 
 #### The preregistered prediction failed
 
