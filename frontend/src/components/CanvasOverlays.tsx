@@ -38,20 +38,25 @@ export function CanvasOverlays({
         <>
             <div className="canvas-glow" aria-hidden />
             <div className="canvas-hud">
-                <div className="hud-group">
-                    <div className="hud-item">
-                        <span
-                            className={`status-dot ${connectionStatus}${connectionStatus !== 'live' ? ' animate-pulse' : ''}`}
-                            style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                background: CONNECTION_STATUS_DISPLAY[connectionStatus].color,
-                            }}
-                        />
-                        {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
+                {/* Outside Watch Mode the stats bar already carries this, and two
+                    LIVE badges on one screen is just noise over the tank. Watch
+                    Mode hides the stats bar, so there it is the only one. */}
+                {watchMode && (
+                    <div className="hud-group">
+                        <div className="hud-item">
+                            <span
+                                className={`status-dot ${connectionStatus}${connectionStatus !== 'live' ? ' animate-pulse' : ''}`}
+                                style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: '50%',
+                                    background: CONNECTION_STATUS_DISPLAY[connectionStatus].color,
+                                }}
+                            />
+                            {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
+                        </div>
                     </div>
-                </div>
+                )}
                 <div className="hud-group">
                     <ModeSwitch mode={uiMode} onSelect={onSelectMode} />
                 </div>

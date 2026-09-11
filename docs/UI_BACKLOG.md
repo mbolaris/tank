@@ -70,6 +70,27 @@ researcher trying to observe, understand, and safely operate a live world.
   has no dedicated boolean — it's "on" whenever a panel is visible — so
   selecting it restores the last-open panel rather than forcing a fixed one.
 
+## Recently verified complete (2026-09-11)
+
+Checked against the code rather than assumed. Two entries below had been sitting
+in the open list while the work was already merged; an agent picking from this
+list would have rebuilt them.
+
+- [x] **Widen normal mode's aquarium.** The stage now fills the content column
+  (canvas 916 -> 1080px at a 1600px viewport).
+- [x] **Add a free pan/zoom camera.** `frontend/src/components/camera.ts`:
+  scroll to zoom (1-4x, cursor-anchored), drag to pan, reset control. Follow
+  and free look are one camera; `camera.test.ts` pins the equivalence.
+- [x] **React to reef/grotto feeding visually** — *was already done when this
+  entry said it was not*. `frontend/src/utils/renderer.ts::renderTankObject`
+  reads `render_hint.feeder_activity`, and the active renderer
+  (`TankSideRenderer` instantiates it) modulates the reef and grotto glow alpha
+  by `stockRatio`, scales the shimmer/mote counts by it, and adds an
+  `activationPulse` on a recent dispense. Stock, depletion and the dispense
+  moment are all on screen.
+- [x] **Remove the duplicate LIVE indicator.** The canvas HUD badge now renders
+  only in Watch Mode, which is the one place the stats bar is hidden.
+
 ## High-value next steps
 
 - [ ] **Widen normal mode's aquarium.** Outside Watch Mode, `.sceneWorkspace` /
@@ -87,11 +108,6 @@ researcher trying to observe, understand, and safely operate a live world.
   reef/grotto/castle sprites. Render an actual object (arch/ring/hoop) and
   only show the raw collision zone in Build Mode or when the ball is near —
   same mechanics, a world object instead of a hitbox.
-- [ ] **React to reef/grotto feeding visually.** The feeding capability itself
-  is real (see Completed, above) but invisible — the canvas doesn't yet show
-  stock level, depletion, or a dispense moment. A lush/depleted/glow treatment
-  driven by `render_hint.capabilities`/the capability's stock ratio would make
-  the ecosystem's food economy legible at a glance.
 
 ## P2 — later
 
@@ -101,8 +117,6 @@ researcher trying to observe, understand, and safely operate a live world.
   between measured energy change and the approximate inflow/outflow ledger.
 - [ ] **Add user-selectable workspace presets.** For example: Observe (Trends),
   Operate (Ecosystem), Compare (Skills), and Collaborate (Board).
-- [ ] **Remove the duplicate LIVE indicator.** One shows in the stats bar,
-  another in the canvas HUD; keep one.
 - [ ] **Regroup the default object layout into habitat zones.** The algae reef
   currently reads as floating mid-water rather than attached to terrain.
   Anchor reef/grotto to left/right habitat zones (matching
