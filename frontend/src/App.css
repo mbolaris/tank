@@ -58,7 +58,8 @@
 .canvas-wrapper {
     position: relative;
     width: 100%;
-    max-width: 1200px;
+    /* Was 1200px, which became the binding constraint once the stage widened. */
+    max-width: var(--tank-canvas-max-width, 1600px);
     /* Gives the wrapper a definite height from its width alone (matches the
        simulation's 1088x612 world) so the responsive canvas inside always has
        a real box to measure and fit into, with no dependency on canvas
