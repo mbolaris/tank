@@ -8,15 +8,39 @@ import type { PursuitOverlayData, TargetMemoryOverlayData, Renderer, ViewMode } 
 import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { ImageLoader } from '../utils/ImageLoader';
-import { FOLLOW_ZOOM, getFollowViewport } from './followViewport';
-import { findEntityAtPoint } from './canvasEntityHitTest';
 import {
-    fitWorldToContainer,
-    getRenderDpr,
-    screenPointToWorld,
-    WORLD_HEIGHT,
-    WORLD_WIDTH,
-} from './canvasGeometry';
+    DEFAULT_CAMERA,
+    MAX_ZOOM,
+    MIN_ZOOM,
+    cameraForTarget,
+    cameraScreenToWorld,
+    getCameraViewport,
+    isDefaultCamera,
+    panByScreenDelta,
+    zoomAtFraction,
+    zoomByStep,
+    type Camera,
+} from './camera';
+import { findEntityAtPoint } from './canvasEntityHitTest';
+import { fitWorldToContainer, getRenderDpr } from './canvasGeometry';
+
+/** Pointer travel before a press counts as a pan rather than a click. */
+const PAN_THRESHOLD_PX = 4;
+/** Wheel delta -> zoom factor, via exp() so trackpads and mice both feel linear. */
+const WHEEL_ZOOM_SENSITIVITY = 0.0015;
+/** Upper bound on how much larger the offscreen buffer may get when zoomed.
+ *  Without supersampling, zooming magnifies a canvas-sized bitmap and just
+ *  shows bigger pixels; rendering the world into a proportionally larger
+ *  buffer is what turns zoom into actual detail.
+ *
+ *  Held at 2 because the cost is quadratic and measured: a 4x buffer is 16x
+ *  the pixels and took the render loop from 37fps to 8fps. A 2x buffer is 4x
+ *  the pixels, keeps the range people actually linger in (~1.5-2.5x, close
+ *  enough to watch one fish) genuinely sharp, and still beats no
+ *  supersampling at the top of the range. */
+const MAX_SUPERSAMPLE = 2;
+/** Matches canvasGeometry's budget: keep the zoom buffer from exploding. */
+const MAX_BUFFER_PIXELS = 12_000_000;
 
 interface CanvasProps {
     state: SimulationUpdate | null;
@@ -131,38 +155,45 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         }
     }, []);
 
-    const getWorldPoint = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    // While following a fish, that fish owns the camera: free look stands down
+    // rather than fighting it, and the controls hide instead of reporting a
+    // zoom the view is not using.
+    const following = followEntityId !== null && followEntityId !== undefined;
+
+    // Free-look camera. Kept in a ref for the render loop (which must not
+    // re-subscribe every frame) and in state for the reset affordance.
+    const [camera, setCamera] = useState<Camera>(DEFAULT_CAMERA);
+    const cameraRef = useRef(camera);
+    const panOriginRef = useRef<{ x: number; y: number } | null>(null);
+    // A drag that moved is a pan, not a click; without this, releasing after
+    // dragging the view would also select whatever ended up under the cursor.
+    const didPanRef = useRef(false);
+
+    const applyCamera = useCallback((next: (prev: Camera) => Camera) => {
+        setCamera((prev) => next(prev));
+    }, []);
+
+    /** The camera actually on screen: following a fish overrides free look. */
+    const resolveCamera = useCallback((): Camera => {
+        const followed = followEntityId !== null && followEntityId !== undefined
+            ? (state?.snapshot?.entities ?? state?.entities ?? []).find((entity) => entity.id === followEntityId)
+            : undefined;
+        return followed ? cameraForTarget(followed) : cameraRef.current;
+    }, [followEntityId, state]);
+
+    const getWorldPoint = (event: { clientX: number; clientY: number }) => {
         const canvas = canvasRef.current;
         if (!canvas || !state) return null;
-
-        const rect = canvas.getBoundingClientRect();
-        const followed = followEntityId !== null && followEntityId !== undefined
-            ? (state.snapshot?.entities ?? state.entities ?? []).find((entity) => entity.id === followEntityId)
-            : undefined;
-
-        if (!followed) {
-            return screenPointToWorld(event.clientX, event.clientY, rect, canvas.width, canvas.height);
-        }
-
-        // While following, the click lands in the zoomed/panned viewport
-        // getFollowViewport draws, not the raw canvas. Convert to
-        // buffer-pixel space, apply that viewport's offset and zoom there
-        // (mirroring the render loop's drawImage call below), then convert
-        // the adjusted point to world units.
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const bufferX = (event.clientX - rect.left) * scaleX;
-        const bufferY = (event.clientY - rect.top) * scaleY;
-        const viewport = getFollowViewport(followed, canvas.width, canvas.height);
-        const adjustedBufferX = viewport.sourceX + bufferX / FOLLOW_ZOOM;
-        const adjustedBufferY = viewport.sourceY + bufferY / FOLLOW_ZOOM;
-        return {
-            worldX: adjustedBufferX * (WORLD_WIDTH / canvas.width),
-            worldY: adjustedBufferY * (WORLD_HEIGHT / canvas.height),
-        };
+        // One inversion of one transform. When the camera is the default this
+        // reduces to the old un-zoomed mapping, which camera.test.ts pins.
+        return cameraScreenToWorld(resolveCamera(), event.clientX, event.clientY, canvas.getBoundingClientRect());
     };
 
     const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (didPanRef.current) {
+            didPanRef.current = false;
+            return;
+        }
         if (!state || error) return;
         const point = getWorldPoint(event);
         if (!point) return;
@@ -188,6 +219,12 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
     };
 
     const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        // Build mode owns left-drag for moving objects, so free-look panning
+        // only claims the gesture outside it.
+        if (!buildMode && !following && event.button === 0) {
+            panOriginRef.current = { x: event.clientX, y: event.clientY };
+            didPanRef.current = false;
+        }
         if (!buildMode || buildPlacementActive) return;
         const point = getWorldPoint(event);
         if (!point || !state) return;
@@ -218,6 +255,56 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         if (point) onBuildPointerMove(point.worldX, point.worldY);
     };
 
+    // Panning tracks the window rather than the canvas: a drag that leaves the
+    // tank should keep panning until the button comes up, not stick halfway.
+    useEffect(() => {
+        const onMove = (event: MouseEvent) => {
+            const origin = panOriginRef.current;
+            const canvas = canvasRef.current;
+            if (!origin || !canvas) return;
+            const dx = event.clientX - origin.x;
+            const dy = event.clientY - origin.y;
+            if (!didPanRef.current && Math.hypot(dx, dy) < PAN_THRESHOLD_PX) return;
+            didPanRef.current = true;
+            panOriginRef.current = { x: event.clientX, y: event.clientY };
+            const rect = canvas.getBoundingClientRect();
+            applyCamera((prev) => panByScreenDelta(prev, dx, dy, rect.width, rect.height));
+        };
+        const onUp = () => {
+            panOriginRef.current = null;
+        };
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+        return () => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+        };
+    }, [applyCamera]);
+
+    // Wheel zoom needs a non-passive listener to stop the page scrolling, which
+    // React's onWheel cannot guarantee.
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const onWheel = (event: WheelEvent) => {
+            if (following) return;
+            event.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            const factor = Math.exp(-event.deltaY * WHEEL_ZOOM_SENSITIVITY);
+            applyCamera((prev) =>
+                zoomAtFraction(
+                    prev,
+                    prev.zoom * factor,
+                    (event.clientX - rect.left) / rect.width,
+                    (event.clientY - rect.top) / rect.height,
+                ),
+            );
+        };
+        canvas.addEventListener('wheel', onWheel, { passive: false });
+        return () => canvas.removeEventListener('wheel', onWheel);
+    }, [applyCamera, following]);
+
     // Refs to hold latest state for the animation loop
     const stateRef = useRef(state);
     const imagesLoadedRef = useRef(imagesLoaded);
@@ -239,13 +326,14 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         pursuitOverlayRef.current = pursuitOverlay;
         targetMemoryOverlayRef.current = targetMemoryOverlay;
         followEntityIdRef.current = followEntityId;
+        cameraRef.current = camera;
         showEffectsRef.current = showEffects;
         showSoccerRef.current = showSoccer;
         buildGhostRef.current = buildGhost;
         buildModeRef.current = buildMode;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects, showSoccer, viewMode, worldTypeProp, buildGhost, buildMode]);
+    }, [state, imagesLoaded, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, camera, showEffects, showSoccer, viewMode, worldTypeProp, buildGhost, buildMode]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -336,19 +424,34 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
                             (entity) => entity.id === followTargetId
                         )
                         : undefined;
-                    const renderCanvas = followTarget
+                    // Following a fish and free look are the same camera; the
+                    // whole-world case still draws straight to the visible
+                    // canvas so the common path costs no extra blit.
+                    const activeCamera = followTarget ? cameraForTarget(followTarget) : cameraRef.current;
+                    const needsViewport = !isDefaultCamera(activeCamera);
+                    const renderCanvas = needsViewport
                         ? (followCanvasRef.current ?? document.createElement('canvas'))
                         : canvas;
-                    if (followTarget && !followCanvasRef.current) {
+                    if (needsViewport && !followCanvasRef.current) {
                         followCanvasRef.current = renderCanvas;
                     }
-                    if (renderCanvas.width !== canvas.width || renderCanvas.height !== canvas.height) {
-                        renderCanvas.width = canvas.width;
-                        renderCanvas.height = canvas.height;
+                    // Render the world at zoom resolution so magnifying reveals
+                    // detail instead of enlarging pixels, within a pixel budget.
+                    const budgetScale = Math.sqrt(
+                        MAX_BUFFER_PIXELS / Math.max(1, canvas.width * canvas.height)
+                    );
+                    const superSample = needsViewport
+                        ? Math.max(1, Math.min(activeCamera.zoom, MAX_SUPERSAMPLE, budgetScale))
+                        : 1;
+                    const bufferWidth = Math.round(canvas.width * superSample);
+                    const bufferHeight = Math.round(canvas.height * superSample);
+                    if (renderCanvas.width !== bufferWidth || renderCanvas.height !== bufferHeight) {
+                        renderCanvas.width = bufferWidth;
+                        renderCanvas.height = bufferHeight;
                     }
-                    const renderCtx = followTarget ? renderCanvas.getContext('2d') : ctx;
+                    const renderCtx = needsViewport ? renderCanvas.getContext('2d') : ctx;
                     if (!renderCtx) {
-                        setErrorOnce('Failed to get follow camera context');
+                        setErrorOnce('Failed to get camera render context');
                         return;
                     }
 
@@ -372,8 +475,8 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
                         nowMs
                     });
 
-                    if (followTarget) {
-                        const viewport = getFollowViewport(followTarget, canvas.width, canvas.height);
+                    if (needsViewport) {
+                        const viewport = getCameraViewport(activeCamera, renderCanvas.width, renderCanvas.height);
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(
                             renderCanvas,
@@ -470,7 +573,11 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
             onMouseUp={handleCanvasMouseUp}
             onMouseMove={handleCanvasPointerMove}
             style={{
-                cursor: buildMode ? 'crosshair' : onEntityClick ? 'pointer' : 'default',
+                cursor: buildMode
+                    ? 'crosshair'
+                    : !isDefaultCamera(camera)
+                        ? 'grab'
+                        : onEntityClick ? 'pointer' : 'default',
                 ...(responsive ? { width: renderSize.cssWidth, height: renderSize.cssHeight } : {}),
                 ...style,
             }}
@@ -479,12 +586,83 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
 
     if (!responsive) return canvasEl;
 
+    const atFullView = isDefaultCamera(camera);
+    const zoomButtonStyle: CSSProperties = {
+        width: 26,
+        height: 26,
+        display: 'grid',
+        placeItems: 'center',
+        border: '1px solid rgba(148, 163, 184, 0.28)',
+        borderRadius: 7,
+        background: 'rgba(15, 23, 42, 0.72)',
+        color: 'var(--color-text-main, #e2e8f0)',
+        font: '600 14px/1 var(--font-mono, monospace)',
+        cursor: 'pointer',
+    };
+
     return (
         <div
             ref={containerRef}
-            style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
             {canvasEl}
+            {!following && <div
+                // Sits quietly until the view is actually moved; scroll-to-zoom
+                // over a canvas is conventional enough to carry discovery.
+                style={{
+                    position: 'absolute',
+                    right: 12,
+                    bottom: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: 5,
+                    borderRadius: 10,
+                    background: 'rgba(2, 6, 23, 0.45)',
+                    opacity: atFullView ? 0.45 : 1,
+                    transition: 'opacity 140ms ease',
+                }}
+                data-testid="camera-controls"
+            >
+                <button
+                    type="button"
+                    aria-label="Zoom out"
+                    style={zoomButtonStyle}
+                    disabled={camera.zoom <= MIN_ZOOM}
+                    onClick={() => applyCamera((prev) => zoomByStep(prev, 1 / 1.4))}
+                >
+                    −
+                </button>
+                <span
+                    aria-live="polite"
+                    style={{
+                        minWidth: 42,
+                        textAlign: 'center',
+                        color: 'var(--color-text-dim, #94a3b8)',
+                        font: '600 11px/1 var(--font-mono, monospace)',
+                    }}
+                >
+                    {camera.zoom.toFixed(1)}×
+                </span>
+                <button
+                    type="button"
+                    aria-label="Zoom in"
+                    style={zoomButtonStyle}
+                    disabled={camera.zoom >= MAX_ZOOM}
+                    onClick={() => applyCamera((prev) => zoomByStep(prev, 1.4))}
+                >
+                    +
+                </button>
+                <button
+                    type="button"
+                    aria-label="Reset view"
+                    style={{ ...zoomButtonStyle, width: 'auto', padding: '0 9px', fontSize: 11 }}
+                    disabled={atFullView}
+                    onClick={() => setCamera(DEFAULT_CAMERA)}
+                >
+                    Reset
+                </button>
+            </div>}
         </div>
     );
 }
