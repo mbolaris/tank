@@ -179,12 +179,29 @@ or champion metadata must be separate from Layer 1 algorithm improvements.*
 ## Common Gotchas
 
 - Always use `--seed 42` for reproducible benchmarks
-- **Ball pursuit pre-empts food seeking**: in `core/movement_strategy.py`, soccer-ball
-  pursuit (priority 2) runs before the composable behavior's food pursuit (priority 4),
-  and the ball exists even in benchmark configs (`tank_practice_enabled` defaults to True
-  even when `soccer_enabled` is False). When diagnosing starvation, first check whether
-  fish are clustering around the ball at tank center instead of foraging
-  (`scripts/diagnose_food_seeking.py` helps).
+- **Ball pursuit pre-empts food seeking — but it is not why the tank starves.**
+  The ordering is real: in `core/movement_strategy.py` soccer-ball pursuit
+  (priority 2) runs before the composable behavior's food pursuit (priority 4),
+  and the ball exists even in benchmark configs (`tank_practice_enabled` defaults
+  to True even when `soccer_enabled` is False). This entry used to say to check
+  that first when diagnosing starvation. **Measured, it is a dead end**
+  (`research/starvation/practice_ball_ablation.json`, reproduce with
+  `tools/ablate_world_config.py benchmarks/tank/survival_5k.py --key
+  tank_practice_enabled --off --seeds 42,2,999`): turning the ball off moves the
+  starvation rate by at most two points and on seed 42 moves it the *wrong* way
+  (0.8632 -> 0.8673). Starvation stays 86-97% of deaths either way.
+  The ball does cost something — on seed 42, removing it raises the score
+  702.58 -> 751.32 and `max_generation` 4 -> 5, which is the reproduction-energy
+  gotcha below, not a foraging one. Look there, not at food-seeking.
+- **`starvation_rate` is a share of deaths, not a rate of starving.** It is
+  `starvation_deaths / total_deaths`, so it climbs whenever *other* causes are
+  rare, and `survival_5k` gates its score to zero above
+  `MAX_VALID_STARVATION_RATE = 0.95`. At baseline the tank sits near that line:
+  sampling seeds 42/2/999 gives 0.8632 / 0.9482 / 0.9834, so one of the three is
+  already invalid and another is 0.3 points away, before any change. Read a
+  `survival_5k` delta with that in mind; a candidate can tip a borderline seed
+  over the gate without being broadly worse (see Theme 10.6's retracted
+  Finding 3).
 - **Tank benchmark population means fish**: `avg_pop`, `mean_population`, and
   `final_population` are fish population fields. `final_total_entities` includes
   food and other world objects and is diagnostic only, never the population score.
