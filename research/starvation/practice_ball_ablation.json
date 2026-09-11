@@ -1,0 +1,64 @@
+{
+  "benchmark_id": "tank/survival_5k",
+  "key": "tank_practice_enabled",
+  "value": false,
+  "rows": [
+    {
+      "seed": 42,
+      "baseline": {
+        "score": 702.5775136245999,
+        "starvation_rate": 0.8632,
+        "score_valid": true,
+        "total_deaths": 190,
+        "starvation_deaths": 164,
+        "max_generation": 4
+      },
+      "changed": {
+        "score": 751.3222962294376,
+        "starvation_rate": 0.8673,
+        "score_valid": true,
+        "total_deaths": 211,
+        "starvation_deaths": 183,
+        "max_generation": 5
+      }
+    },
+    {
+      "seed": 2,
+      "baseline": {
+        "score": 513.473309824358,
+        "starvation_rate": 0.9482,
+        "score_valid": true,
+        "total_deaths": 328,
+        "starvation_deaths": 311,
+        "max_generation": 4
+      },
+      "changed": {
+        "score": 485.2943410810381,
+        "starvation_rate": 0.9256,
+        "score_valid": true,
+        "total_deaths": 309,
+        "starvation_deaths": 286,
+        "max_generation": 4
+      }
+    },
+    {
+      "seed": 999,
+      "baseline": {
+        "score": 0.0,
+        "starvation_rate": 0.9834,
+        "score_valid": false,
+        "total_deaths": 361,
+        "starvation_deaths": 355,
+        "max_generation": 5
+      },
+      "changed": {
+        "score": 0.0,
+        "starvation_rate": 0.9738,
+        "score_valid": false,
+        "total_deaths": 344,
+        "starvation_deaths": 335,
+        "max_generation": 4
+      }
+    }
+  ]
+}
