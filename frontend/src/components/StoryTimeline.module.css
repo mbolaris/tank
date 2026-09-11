@@ -3,6 +3,9 @@
        workspace, so it centres on the same 1140px content column instead of
        becoming a squeezed third column inside that row. */
     width: 100%;
+    /* width:100% plus horizontal padding overflowed the viewport by the
+       padding amount on narrow screens, forcing a horizontal scrollbar. */
+    box-sizing: border-box;
     max-width: 1140px;
     margin: 12px auto 0;
     display: flex;

@@ -260,7 +260,9 @@ export function TankView({ worldId }: TankViewProps) {
                 style={{
                     marginBottom: '20px',
                     width: '100%',
-                    maxWidth: '1140px',
+                    // Shares the tank stage's width so the HUD stays flush with
+                    // the canvas below it; see .sceneWorkspace in the stylesheet.
+                    maxWidth: 'var(--tank-stage-max-width, 1304px)',
                     marginLeft: 'auto',
                     marginRight: 'auto',
                 }}

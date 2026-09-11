@@ -1,3 +1,8 @@
+/* The tank stage (stats bar, scene, control bar) fills the content column
+   rather than stopping at the old 1140px cap: on a 1600px viewport that left
+   the canvas at 902px with ~400px of dead margin beside it. The research
+   panels below keep their own narrower cap on purpose - a reading column
+   does not want to be as wide as the aquarium. */
 /* Control bar row */
 .controlBar {
     display: flex;
@@ -5,7 +10,7 @@
     align-items: center;
     margin-bottom: 20px;
     width: 100%;
-    max-width: 1140px;
+    max-width: var(--tank-stage-max-width, 1304px);
     margin-left: auto;
     margin-right: auto;
     flex-wrap: wrap;
@@ -13,7 +18,7 @@
 
 .sceneWorkspace {
     width: 100%;
-    max-width: 1140px;
+    max-width: var(--tank-stage-max-width, 1304px);
     margin: 0 auto;
     display: flex;
     align-items: stretch;
@@ -39,7 +44,7 @@
 .statsBar {
     margin-bottom: 20px;
     width: 100%;
-    max-width: 1140px;
+    max-width: var(--tank-stage-max-width, 1304px);
     margin-left: auto;
     margin-right: auto;
 }
@@ -446,6 +451,18 @@
 }
 
 /* Responsive adjustments */
+/* The evolution readout switches to width:100% at 800px (see
+   EvolutionHealthReadout.module.css), which only makes sense once this
+   workspace has stopped being a row. While the two breakpoints disagreed,
+   every viewport in the 600-800px band put a full-width sidebar beside the
+   canvas and squeezed it to 8px wide. Stack at the same breakpoint the
+   sidebar already assumes. */
+@media (max-width: 800px) {
+    .sceneWorkspace {
+        flex-direction: column;
+    }
+}
+
 @media (max-width: 600px) {
     .sceneWorkspace {
         flex-direction: column;
