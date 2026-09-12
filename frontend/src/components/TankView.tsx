@@ -29,7 +29,7 @@ import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
 import { CanvasOverlays } from './CanvasOverlays';
-import { EvolutionHealthReadout } from './EvolutionHealthReadout';
+import { EvolutionSidebar } from './EvolutionSidebar';
 import { FollowStoryCard } from './FollowStoryCard';
 import { CinematicDirector } from './CinematicDirector';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
@@ -481,7 +481,7 @@ export function TankView({ worldId }: TankViewProps) {
                     />
                 </div>
                 {!watchMode && (
-                    <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={() => openPanel('trends')} livePopulation={state?.stats?.fish_count ?? null} />
+                    <EvolutionSidebar history={state?.metrics_history ?? null} onOpenTrends={() => openPanel('trends')} livePopulation={state?.stats?.fish_count ?? null} worldId={effectiveWorldId} />
                 )}
             </div>
 

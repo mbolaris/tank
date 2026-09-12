@@ -111,6 +111,38 @@ list would have rebuilt them.
   only show the raw collision zone in Build Mode or when the ball is near —
   same mechanics, a world object instead of a hitbox.
 
+- [x] **Show whether each skill domain is actually evolving.** Shipped as the
+  "Evolution progress" panel under the health readout: one verdict per domain
+  (foraging, poker, soccer) with the sentence it rests on.
+
+  The hard part was not the panel, it was making the verdict honest.
+  `skill_index` is `rungs_beaten / total_rungs * 100`, so on a live tank it
+  takes five values and adjacent samples jump the full range - a captured
+  poker series moved 100 -> 0 -> 50 between consecutive snapshots while the
+  population was not changing. A latest-versus-previous indicator would have
+  flipped state every few seconds. `core/research/skill_progress.py` instead
+  compares a recent window's mean against an earlier one and only calls it
+  progress when the move exceeds the standard error of the difference; that
+  real 35-sample series is pinned as a test and reads **stalled** (+4.4 over
+  107 generations against 9.4 of noise).
+
+  Two states beyond the three asked for, because without them the honest
+  answer would be a lie: `no_data` (an unmeasured domain is not stalled) and
+  `at_ceiling` (beating every rung is the opposite of stalled - the ladder's
+  own docstring says a reached ceiling means the ruler needs a taller rung).
+
+  Foraging had no live series at all - only ever "the latest observatory
+  result" - so `SkillEvaluationService` gained a result observer and
+  `backend/skill_progress_service.py` retains the series. Its score is
+  rescaled onto the ladder's 0-100 between the wandering floor and the oracle
+  ceiling, because the raw ratio would credit a fish that ignores food with
+  ~10% skill.
+
+  Known limits: the foraging series is in memory, so it restarts empty and
+  takes ~30 minutes of the 5-minute evaluation cadence to reach a verdict;
+  poker and soccer read the engine's bounded `SkillSnapshotStore`, so their
+  window is the last 50 samples.
+
 ## P2 — later
 
 - [ ] **Collapse the empty Board state.** Show a compact invitation to observe
