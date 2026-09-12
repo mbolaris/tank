@@ -1086,6 +1086,120 @@ matrix, reported above. Closing the rest requires the AI arm to log its
 attempts through the same ledger contract going forward; that is a discipline
 change, not a tooling gap, and it is the remaining work on this item.
 
+### 10.7 Answer the starvation question — `S` · ★★★ — SHIPPED (2026-09-12)
+
+Two entries above this one measured the tank's starvation and found only what it
+*was not*. 10.6's Finding 3 was retracted because a candidate tipped a
+borderline seed over the validity gate; the practice-ball ablation refuted the
+one mechanism `CLAUDE.md` nominated and left the cause unfound. This closes it.
+
+#### The answer: fish starved holding savings they were not allowed to spend
+
+A fish banks everything it gains above `max_energy` into an overflow
+reproduction bank (`_route_overflow_energy`). Until now
+`consume_overflow_energy_bank` had exactly one caller —
+`core/reproduction/asexual_factory.py` — so that bank was spendable on
+offspring and on nothing else. Nothing drew on it to stay alive.
+
+Measured at the death site rather than inferred from the death mix
+(`tools/measure_death_reserves.py`, artifact
+`research/starvation/death_reserves_before.json`):
+
+| seed | starvation deaths | died holding reserves | mean bank held | energy foreclosed |
+|---|---|---|---|---|
+| 42 | 164 | **83 (51%)** | 147 | 12,233 |
+| 2 | 311 | 89 (29%) | 32 | 9,895 |
+| 999 | 355 | 115 (32%) | 41 | 14,695 |
+
+36,823 energy across three seeds, destroyed by fish at exactly zero energy with
+a positive balance. The largest single case: a fish dead at zero holding
+**539.94**, three times its own `max_energy` of 179.98. `record_death` sums
+`energy + bank` into one `remaining_energy` field, which is why nothing
+downstream of it could ever tell a fish that starved empty from one that starved
+rich.
+
+**Why the death mix could not show this.** `starvation_rate` is a share of
+deaths. A fish that dies rich and a fish that dies poor both increment
+`starvation`, so the ratio is blind to exactly the distinction that matters.
+
+#### The fix
+
+`_draw_on_reserves` in `core/entities/mixins/energy_mixin.py`: a fish whose
+energy reaches zero tops back up out of its own bank before dying. It restores
+**only** the starvation threshold, so a fish living on reserves burns straight
+back through it and keeps reading as starving to its own behaviour rather than
+coasting. An empty bank dies exactly as before.
+
+| benchmark | seeds | mean before | mean after | |
+|---|---|---|---|---|
+| `tank/survival_5k` | 42, 2, 999, 7, 123 | 514.96 | 812.37 | +57.8% |
+| — the four valid at baseline | 42, 2, 7, 123 | 643.70 | 837.98 | +30.2% |
+| `heldout/survival_heldout_5k` | 42, 2, 999 | 417.19 | 522.99 | +25.4% |
+| `tank/ecosystem_health_10k` | 42, 7, 123 | 9.369 | 11.665 | +24.5% |
+
+Every seed of every benchmark improves. Starvation falls from 86-97% of deaths
+to 41-82%. **Seed 999 of `survival_5k` was already gated invalid at baseline
+(0.9834) and is now valid at 0.8214** — a repair, not a score, and the reason
+the five-seed mean is quoted alongside the four-seed one.
+
+`avg_pop` is unchanged to four decimals on every `survival_5k` seed, so the
+entire delta is the energy term. That is the regulation finding below doing its
+work: population is pinned by `max_population` and cannot respond.
+
+#### What it costs, and what it does not fix
+
+- **Generation turnover.** Reserves spent surviving are reserves not spent on
+  offspring: `survival_5k` seed 999 loses a generation (5 → 4) and
+  `ecosystem_health_10k` seed 42 loses one (8 → 7). The other four seeds hold.
+  `ecosystem_health_10k` still rises on all three seeds because its starvation
+  penalty recovers by more than the generation term loses.
+- **Energy is still destroyed at death, just later.** Seed 42 buries 19,751
+  banked units before and 18,024 after; the composition moved from starvation
+  (12,233) to old age (17,318). The tank scores better because fish live longer
+  and hold more energy while alive, not because less is annihilated. Recovering
+  energy from corpses is untouched ground.
+
+#### The context: food supply is a thermostat, not a resource
+
+Found while ruling out the obvious cause, and the reason "tune foraging" was
+never going to work. `FoodSpawningSystem._calculate_spawn_rate` is a closed loop
+on *total fish energy* — triple rate below `AUTO_FOOD_LOW_ENERGY_THRESHOLD`
+(5000), slower above `AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1`. Swept over
+`auto_food_spawn_rate` at baseline:
+
+| rate | food supply | pop | total fish energy | per fish | drift over window |
+|---|---|---|---|---|---|
+| 2 | 4.5× stock | 60 | 5,626.0 | 93.8 | +3.1% |
+| 3 | 3× stock | 60 | 5,223.7 | 87.1 | +5.6% |
+| **9** | **stock** | 60 | **5,012.8** | **83.5** | **+0.3%** |
+| 18 | ½ stock | 60 | 3,527.0 | 58.8 | −9.5% |
+| 36 | engine default | 53.8 | 2,244.7 | 41.7 | −21.1% |
+
+Across a **4.5× change in food supply** the regulated quantity moves 12% while
+population is pinned at 60 by `max_population`, so per-fish energy is a constant
+of the configuration rather than an outcome of behavior: a better forager only
+makes the thermostat close the tap. Two qualifications the sweep also settles —
+the loop **saturates** at its 3× boost ceiling, so rates 18 and 36 are not lower
+set points but collapses still in progress when the run ends (negative drift);
+and `survival_5k` sits at the *bottom edge* of the regulated band.
+
+`core/research/regulation.py` and `tools/measure_tank_regulation.py` measure
+this for any world-config key, reporting the regulated quantity
+(`sum(fish.energy)`, which the controller reads) apart from the banked quantity
+(which it does not, and which the score counts). Two incidental findings from
+the same sweep, both recorded in
+`research/starvation/food_supply_regulation.json`:
+
+- The **population arm** of that controller is dead code in every tank
+  benchmark: `AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80` against caps of 50-60.
+- `survival_5k` pins `auto_food_spawn_rate: 9` against an engine default of 36,
+  and at the default the benchmark is **invalid** (starvation 0.9528). Its
+  validity was being bought by that override.
+- The same sweep after the fix shows the loop still regulating (raw energy
+  4,805-5,136 over the same 4.5× range) and the population now holding at 60
+  even at the engine default, where baseline dropped to 53.8. A tank that can
+  spend its reserves stays at carrying capacity through a 4× food cut.
+
 ## Theme 11 — Skill measurement & visualization: frozen rulers (2026-07)
 
 How well do the agents actually play poker, forage, and play soccer — in

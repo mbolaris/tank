@@ -121,10 +121,20 @@ A living log so the board doesn't re‑propose dead ends. **Builders: append out
 **Load‑bearing constraints (don't fight these blindly):**
 - **Ball pursuit pre‑empts food‑seeking.** In `core/movement_strategy.py`, soccer‑ball
   pursuit runs before composable food pursuit, and the ball exists even in benchmark
-  configs. A foraging intervention that ignores this will quietly fail.
+  configs. Real, but *measured* it is not why the tank starved — turning the ball off moves
+  starvation by at most two points (§5 graveyard, 2026‑09‑11). Its cost lands on
+  reproduction energy, not foraging.
+- **Food supply is a thermostat, not a resource.** `FoodSpawningSystem._calculate_spawn_rate`
+  is a closed loop on *total* fish energy, holding it flat near `AUTO_FOOD_LOW_ENERGY_THRESHOLD`
+  (5000) while `max_population` pins the count. Per‑fish energy is therefore a constant of the
+  config, and a better forager just makes the thermostat close the tap. Measure with
+  `tools/measure_tank_regulation.py` before assuming a lever exists. The one quantity the loop
+  does *not* see is the overflow bank — which is exactly what the `survival_5k` score counts.
 - **Reproduction is funded by overflow energy** (banked above `max_energy`). Energy sinks
   (ball play, poker) suppress births; "give fish more energy" raises reproduction only if
-  it becomes *surplus*.
+  it becomes *surplus*. The bank is now also a survival reserve of last resort
+  (`_draw_on_reserves`), so a change that raises metabolic cost is paid twice: in births
+  forgone and in reserves burned staying alive.
 - **`ecosystem_health` is trajectory‑sensitive on one seed** (≈linear in `max_generation`).
   A single‑seed win is often a mirage — verify on seeds 7 and 123.
 - **Determinism is non‑negotiable.** All benchmarks use fixed seeds; any change that
@@ -137,6 +147,22 @@ A living log so the board doesn't re‑propose dead ends. **Builders: append out
   | verdict: adopted / rejected / inconclusive | lesson: <one line>
 ```
 
+- 2026-09-12 | Let a starving fish spend its own overflow reproduction bank
+  (`_draw_on_reserves`) | lever §3.8 | hypothesis: a large share of starvation deaths were fish
+  at exactly zero energy still holding a bank they could only spend on offspring, so the tank was
+  starving with savings rather than failing to forage | result: measured at the death site,
+  83/164 (51%) of seed‑42 starvation deaths held a mean of 147 banked units, 36,823 energy
+  foreclosed across seeds 42/2/999; after the change, 0% on all three. `survival_5k` +30.2%
+  over the four seeds valid at baseline and seed 999 repaired from invalid (0.9834) to valid
+  (0.8214); `heldout/survival_heldout_5k` +25.4% (3 seeds); `ecosystem_health_10k` +24.5%
+  (3 seeds) | verdict: **adopted** | lesson: a death *mix* cannot distinguish dying poor from
+  dying rich — instrument the death site, not the ratio.
+- 2026-09-11 | Turn off the practice ball to cure starvation | lever §3.8 | hypothesis: ball
+  pursuit pre-empts food pursuit in the priority order, so removing it should cut starvation |
+  result: starvation moved ≤2 points on seeds 42/2/999 and on seed 42 moved the *wrong* way
+  (0.8632 → 0.8673); the score gain that did appear came through `max_generation`
+  | verdict: **rejected** | lesson: a real mechanism in the code is not evidence it is the
+  binding constraint; ablate before believing the call graph.
 - 2026-07-01 | Behavioral assortative mating (`prefer_similar_behavior` heritable mate
   preference, matched on threat_response/food_approach/social_mode/poker_engagement via
   `ComposableBehavior.similarity()`) | lever §3.6 + §3.4 | hypothesis: shielding
