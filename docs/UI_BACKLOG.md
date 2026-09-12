@@ -93,16 +93,18 @@ list would have rebuilt them.
 
 ## High-value next steps
 
-- [ ] **Widen normal mode's aquarium.** Outside Watch Mode, `.sceneWorkspace` /
-  `.canvas-wrapper` still cap at 1140px/1200px on a `.main` column that goes
-  up to 1400px — hundreds of pixels sit unused beside the tank on a normal
-  desktop viewport. Now that the canvas is responsive (see above), raising
-  these caps is a pure CSS change with no coordinate-math risk; the narrower
-  research panels don't need to widen with it.
-- [ ] **Add a free pan/zoom canvas camera.** The existing follow camera
-  (`followViewport.ts`) only re-centers on a selected entity; there's still no
-  way to freely explore the tank independent of any selection. More valuable
-  now that the canvas actually has room to pan around in.
+- [x] **Widen normal mode's aquarium.** Shipped: `TankStage.module.css` raised
+  the caps (canvas 916px → 1080px measured, and the 200px-wide breakpoint gap
+  that left the tablet canvas 8px wide is closed). The horizontal scrollbar is
+  gone.
+- [x] **Add a free pan/zoom canvas camera.** Shipped as
+  `frontend/src/components/camera.ts` + `useCameraInteractions.ts` +
+  `CameraControls.tsx`: wheel zoom about the cursor, drag to pan, clamped to
+  the world, with the world re-rendered at zoom resolution up to
+  `MAX_SUPERSAMPLE`. `followViewport.ts`'s behaviour is preserved exactly —
+  `camera.test.ts` proves `cameraForTarget` + `getCameraViewport` reproduces
+  `getFollowViewport` — and `e2e/tank-camera.spec.ts` drives real wheel/drag
+  input against a live backend.
 - [ ] **Turn goal zones into TankObjects, hidden by default.** The dashed
   circular `GOAL` markers read as debug geometry next to the styled
   reef/grotto/castle sprites. Render an actual object (arch/ring/hoop) and
@@ -130,9 +132,25 @@ list would have rebuilt them.
 
 ## Someday / stretch goal
 
-- [ ] **Cinematic Director.** Once the camera and Living World Events have
-  landed, an opt-in auto-camera that follows notable individuals or moments
-  (a newborn from a high-performing lineage, a rare species, a feeder
-  activation, a population crisis) with a one-line caption. This is the
-  "leave it running and it tells you a story" payoff of the items above, not
-  a starting point — sequence it last.
+- [x] **Cinematic Director.** Shipped, now that both prerequisites had landed.
+  `hooks/cinematicDirector.ts` holds the shot-selection rules as pure
+  functions, `useCinematicDirector.ts` drives them, and
+  `components/CinematicDirector.tsx` owns both the opt-in toggle and the
+  caption. It cuts to the subject of a new story event, captions it with the
+  event's own words, then hands the tank back after `SHOT_DURATION_MS`.
+  Three decisions worth keeping:
+  - **The backlog is not the story.** `useStoryEvents` backfills 200 events, so
+    the cursor is taken when the director is switched on; otherwise enabling it
+    would immediately cut to something from ten minutes ago.
+  - **The viewer always wins.** The director follows by driving the ordinary
+    selection, so any click, follow toggle, or inspector action ends the shot
+    (`viewerTookOver`) with nothing wired per interaction.
+  - **A moment without a subject is still a moment.** `population_danger` names
+    no individual and is the most dramatic thing the tank does, so a shot may
+    carry no entity: the caption runs and the camera stays put. `prefers-
+    reduced-motion` uses the same path deliberately — captions, no camera
+    movement.
+
+  Remaining ideas from the original entry, not yet done: reacting to feeder
+  activations and rare species (neither is a story-event detector yet), and
+  ranking shots by interest rather than always taking the newest.
