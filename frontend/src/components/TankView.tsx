@@ -24,12 +24,14 @@ import { Panel, PanelLoading } from './TankPanel';
 import { CommentaryFeed } from './CommentaryFeed';
 import { LivingHistory } from './LivingHistory';
 import { useStoryEvents } from '../hooks/useStoryEvents';
+import { useBuildPlacement } from '../hooks/useBuildPlacement';
 import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
 import { CanvasOverlays } from './CanvasOverlays';
 import { EvolutionHealthReadout } from './EvolutionHealthReadout';
 import { FollowStoryCard } from './FollowStoryCard';
+import { CinematicDirector } from './CinematicDirector';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
@@ -65,12 +67,6 @@ const TankTrendsTab = lazy(() =>
     import('./tank_tabs/TankTrendsTab').then((module) => ({ default: module.TankTrendsTab }))
 );
 
-const BUILD_OBJECT_SIZES: Record<string, [number, number]> = {
-    algae_reef: [150, 100],
-    protein_grotto: [145, 110],
-    decorative_rock: [86, 54],
-    castle: [120, 120],
-};
 const BUILD_OBJECT_TYPES = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
 
 export function TankView({ worldId }: TankViewProps) {
@@ -80,7 +76,6 @@ export function TankView({ worldId }: TankViewProps) {
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
     const { watchMode, enterWatchMode, exitWatchMode } = useWatchMode();
-    const [buildGhost, setBuildGhost] = useState<{ kind: string; x: number; y: number; width: number; height: number } | null>(null);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
     const { visible, toggle, showOnly, isVisible } = useVisiblePanels(['trends']);
@@ -154,16 +149,8 @@ export function TankView({ worldId }: TankViewProps) {
         exitWatchMode();
         showOnly(id);
     }, [exitWatchMode, showOnly]);
-    const handleBuildPlace = (x: number, y: number) => {
-        if (!buildKind) return;
-        const [width, height] = BUILD_OBJECT_SIZES[buildKind];
-        sendCommand({
-            command: 'place_tank_object',
-            data: { object_kind: buildKind, x: x - width / 2, y: y - height / 2, width, height },
-        });
-        setBuildKind(null);
-        setBuildGhost(null);
-    };
+    const build = useBuildPlacement({ buildKind, setBuildKind, entities: liveEntities, sendCommand });
+    const [directorEnabled, setDirectorEnabled] = useState(false);
     const handleBuildEntityClick = (entityId: number, entityType: string) => {
         if (buildMode && BUILD_OBJECT_TYPES.has(entityType)) {
             setBuildSelectedObjectId(entityId);
@@ -453,25 +440,11 @@ export function TankView({ worldId }: TankViewProps) {
                         onEntityDoubleClick={handleFishFollow}
                         buildMode={buildMode}
                         buildPlacementActive={buildKind !== null}
-                        onBuildPlace={handleBuildPlace}
-                        buildGhost={buildGhost}
-                        onBuildPointerMove={(x, y) => {
-                            if (!buildKind) {
-                                setBuildGhost(null);
-                                return;
-                            }
-                            const [width, height] = BUILD_OBJECT_SIZES[buildKind];
-                            setBuildGhost({ kind: buildKind, x: x - width / 2, y: y - height / 2, width, height });
-                        }}
+                        onBuildPlace={build.place}
+                        buildGhost={build.ghost}
+                        onBuildPointerMove={build.previewAt}
                         onBuildDragStart={setBuildSelectedObjectId}
-                        onBuildDragEnd={(objectId, x, y) => {
-                            const object = liveEntities.find((entity) => entity.id === objectId);
-                            if (!object) return;
-                            sendCommand({
-                                command: 'move_tank_object',
-                                data: { object_id: objectId, x: x - object.width / 2, y: y - object.height / 2 },
-                            });
-                        }}
+                        onBuildDragEnd={build.moveObject}
                         selectedEntityId={selection.selectedEntityMissing ? null : selection.selectedEntityId}
                         pursuitOverlay={selection.selectedEntityMissing ? null : pursuitOverlay}
                         targetMemoryOverlay={selection.selectedEntityMissing ? null : targetMemoryOverlay}
@@ -486,6 +459,15 @@ export function TankView({ worldId }: TankViewProps) {
                         worldType={effectiveWorldType}
                     />
                     {followedFish && <FollowStoryCard fish={followedFish} onStop={selection.toggleFollow} onInspect={() => selection.selectEntity(followedFish.id, followedFish.type)} />}
+                    <CinematicDirector
+                        enabled={directorEnabled}
+                        onToggle={() => setDirectorEnabled((on) => !on)}
+                        events={storyEvents}
+                        entities={liveEntities}
+                        selectedEntityId={selection.selectedEntityId}
+                        onFollow={selection.selectAndFollowEntity}
+                        onRelease={selection.clearSelection}
+                    />
                     <CanvasOverlays
                         connectionStatus={connectionStatus}
                         watchMode={watchMode}
