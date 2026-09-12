@@ -1,0 +1,17 @@
+/* The column beside the aquarium.
+   Block rather than flex on purpose: EvolutionHealthReadout sets
+   `flex: 0 0 230px` for life as a row child, and in a flex *column* that basis
+   would become its height and squash it. As a block container the readout's
+   flex properties are inert and its width rule still applies. */
+.sidebar {
+    flex: 0 0 230px;
+    width: 230px;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* Matches .sceneWorkspace's own breakpoint, where the workspace stops being a
+   row and the sidebar should span the width rather than stay a 230px ribbon. */
+@media (max-width: 800px) {
+    .sidebar { width: 100%; flex-basis: auto; }
+}
