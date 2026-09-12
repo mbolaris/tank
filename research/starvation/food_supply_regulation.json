@@ -1,0 +1,161 @@
+{
+  "question": "Is per-fish energy in survival_5k something behaviour can move, or is it pinned by the world config?",
+  "finding": "Across a 4.5x change in food supply (auto_food_spawn_rate 9 -> 2) total fish energy moves 12% at baseline while max_population holds the count at 60, so per-fish energy is a constant of the configuration. Below the stock rate the controller saturates at its 3x boost ceiling and stops regulating: rates 18 and 36 show negative drift, meaning the tank is still draining when the run ends rather than sitting at a lower set point.",
+  "reproduce": "python tools/measure_tank_regulation.py benchmarks/tank/survival_5k.py --key auto_food_spawn_rate --values 2,3,9,18,36 --seeds 42",
+  "reads": {
+    "raw_energy": "sum(fish.energy) - the quantity the food controller reads",
+    "banked_energy": "sum(overflow_energy_bank) - invisible to the controller, and counted by the survival_5k score",
+    "drift": "fractional change in raw_energy between the first and second half of the averaging window; near zero means a real steady state"
+  },
+  "incidental": [
+    "The population arm of the controller is dead code in every tank benchmark: AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80 against caps of 50-60.",
+    "survival_5k pins auto_food_spawn_rate: 9 against an engine default of 36, at which the benchmark is invalid (starvation 0.9528).",
+    "After _draw_on_reserves the population holds at 60 even at the engine default, where baseline fell to 53.8."
+  ],
+  "arms": {
+    "before": {
+      "measured_at_commit": "f8bbd77ce05b6299fe0809ce18519dd4588fb96b",
+      "sweep": {
+        "benchmark_id": "tank/survival_5k",
+        "key": "auto_food_spawn_rate",
+        "input_spread": 18.0,
+        "spreads": {
+          "population": 1.1159,
+          "raw_energy": 2.5064,
+          "raw_energy_per_fish": 2.246,
+          "banked_energy": 4.7521,
+          "food_stock": 4.6155
+        },
+        "points": [
+          {
+            "value": 2,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 5626.04,
+            "raw_energy_per_fish": 93.767,
+            "banked_energy": 8639.02,
+            "food_stock": 94.83,
+            "samples": 30,
+            "drift": -0.0025
+          },
+          {
+            "value": 3,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 5223.71,
+            "raw_energy_per_fish": 87.062,
+            "banked_energy": 7995.81,
+            "food_stock": 139.23,
+            "samples": 30,
+            "drift": 0.01836
+          },
+          {
+            "value": 9,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 5012.79,
+            "raw_energy_per_fish": 83.547,
+            "banked_energy": 7414.48,
+            "food_stock": 74.93,
+            "samples": 30,
+            "drift": -0.0106
+          },
+          {
+            "value": 18,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 3526.97,
+            "raw_energy_per_fish": 58.783,
+            "banked_energy": 3699.4,
+            "food_stock": 40.27,
+            "samples": 30,
+            "drift": 0.11474
+          },
+          {
+            "value": 36,
+            "seed": 42,
+            "population": 53.767,
+            "raw_energy": 2244.65,
+            "raw_energy_per_fish": 41.748,
+            "banked_energy": 1817.94,
+            "food_stock": 30.17,
+            "samples": 30,
+            "drift": -0.14966
+          }
+        ]
+      }
+    },
+    "after": {
+      "measured_at_commit": "this commit",
+      "sweep": {
+        "benchmark_id": "tank/survival_5k",
+        "key": "auto_food_spawn_rate",
+        "input_spread": 18.0,
+        "spreads": {
+          "population": 1.0,
+          "raw_energy": 3.0636,
+          "raw_energy_per_fish": 3.0636,
+          "banked_energy": 3.0971,
+          "food_stock": 7.1722
+        },
+        "points": [
+          {
+            "value": 2,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 5135.54,
+            "raw_energy_per_fish": 85.592,
+            "banked_energy": 12316.44,
+            "food_stock": 230.47,
+            "samples": 30,
+            "drift": 0.03098
+          },
+          {
+            "value": 3,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 5165.61,
+            "raw_energy_per_fish": 86.094,
+            "banked_energy": 11924.78,
+            "food_stock": 143.27,
+            "samples": 30,
+            "drift": 0.05564
+          },
+          {
+            "value": 9,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 4805.14,
+            "raw_energy_per_fish": 80.086,
+            "banked_energy": 10525.55,
+            "food_stock": 119.63,
+            "samples": 30,
+            "drift": 0.00269
+          },
+          {
+            "value": 18,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 2723.02,
+            "raw_energy_per_fish": 45.384,
+            "banked_energy": 7113.05,
+            "food_stock": 50.73,
+            "samples": 30,
+            "drift": -0.09534
+          },
+          {
+            "value": 36,
+            "seed": 42,
+            "population": 60.0,
+            "raw_energy": 1686.12,
+            "raw_energy_per_fish": 28.102,
+            "banked_energy": 3976.73,
+            "food_stock": 32.13,
+            "samples": 30,
+            "drift": -0.21136
+          }
+        ]
+      }
+    }
+  }
+}

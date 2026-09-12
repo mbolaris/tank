@@ -179,28 +179,63 @@ or champion metadata must be separate from Layer 1 algorithm improvements.*
 ## Common Gotchas
 
 - Always use `--seed 42` for reproducible benchmarks
-- **Ball pursuit pre-empts food seeking — but it is not why the tank starves.**
-  The ordering is real: in `core/movement_strategy.py` soccer-ball pursuit
-  (priority 2) runs before the composable behavior's food pursuit (priority 4),
-  and the ball exists even in benchmark configs (`tank_practice_enabled` defaults
-  to True even when `soccer_enabled` is False). This entry used to say to check
-  that first when diagnosing starvation. **Measured, it is a dead end**
+- **The tank starved because fish could not spend their own savings.** A fish
+  banks everything it gains above `max_energy` into an overflow reproduction
+  bank, and that bank used to be spendable on offspring and on nothing else.
+  Measured at the death site rather than inferred from the death mix
+  (`python tools/measure_death_reserves.py benchmarks/tank/survival_5k.py
+  --seeds 42,2,999`, artifacts in `research/starvation/`), **51% of seed 42's
+  `survival_5k` starvation deaths were fish at exactly zero energy still
+  holding a mean of 147 banked units** (29-32% on seeds 2 and 999) - 36,823
+  energy foreclosed across the three, seed 42's 12,233 alone more than twice
+  the tank's entire standing energy.
+  `_draw_on_reserves` in `core/entities/mixins/energy_mixin.py` now lets a
+  fish top back up to the starvation threshold out of its own bank before it
+  dies. Starvation fell from 86-97% of deaths to 41-82%, and every sampled
+  seed of `survival_5k` and the held-out evaluator improved. Note what it does
+  *not* do: roughly as much banked energy is still destroyed at death, now at
+  old age instead of mid-life, so "stop destroying energy at death" remains
+  open ground.
+- **Ball pursuit pre-empts food seeking, and it was never why the tank
+  starved.** The ordering is real: in `core/movement_strategy.py` soccer-ball
+  pursuit (priority 2) runs before the composable behavior's food pursuit
+  (priority 4), and the ball exists even in benchmark configs
+  (`tank_practice_enabled` defaults to True even when `soccer_enabled` is
+  False). This entry used to say to check that first when diagnosing
+  starvation. **Measured, it is a dead end**
   (`research/starvation/practice_ball_ablation.json`, reproduce with
   `tools/ablate_world_config.py benchmarks/tank/survival_5k.py --key
-  tank_practice_enabled --off --seeds 42,2,999`): turning the ball off moves the
-  starvation rate by at most two points and on seed 42 moves it the *wrong* way
-  (0.8632 -> 0.8673). Starvation stays 86-97% of deaths either way.
-  The ball does cost something — on seed 42, removing it raises the score
-  702.58 -> 751.32 and `max_generation` 4 -> 5, which is the reproduction-energy
-  gotcha below, not a foraging one. Look there, not at food-seeking.
+  tank_practice_enabled --off --seeds 42,2,999`): turning the ball off moved
+  the starvation rate by at most two points and on seed 42 moved it the
+  *wrong* way. The ball does cost something, but the cost lands on
+  reproduction energy, not foraging.
+- **Food supply is a thermostat, and it has a saturation point.**
+  `FoodSpawningSystem._calculate_spawn_rate` is a closed loop on *total fish
+  energy*: it triples the spawn rate below `AUTO_FOOD_LOW_ENERGY_THRESHOLD`
+  (5000) and slows it above `AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1`. Swept with
+  `python tools/measure_tank_regulation.py benchmarks/tank/survival_5k.py --key
+  auto_food_spawn_rate --values 2,3,9,18,36` (artifact
+  `research/starvation/food_supply_regulation.json`): across a **4.5x** change
+  in food supply (rate 9 -> 2) the loop holds total fish energy inside
+  5,013-5,626, a 12% band, while `max_population` pins the count at 60 - so
+  per-fish energy there is a constant of the configuration, not an outcome of
+  behavior, and a better forager only makes the thermostat close the tap.
+  Below the stock rate the loop **saturates** at its 3x boost ceiling and stops
+  regulating: at rates 18 and 36 the tank is still draining when the run ends
+  (drift -9.5%, -21.1%), so those are collapses, not lower set points.
+  `survival_5k` pins rate 9 - the bottom edge of the regulated band - against an
+  *engine default* of 36 at which the benchmark is invalid (starvation 0.9528).
+  Its validity is bought by that override. (The population arm of the same
+  controller, `AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80`, never fires in any tank
+  benchmark, since they all cap population at 50-60.)
 - **`starvation_rate` is a share of deaths, not a rate of starving.** It is
   `starvation_deaths / total_deaths`, so it climbs whenever *other* causes are
   rare, and `survival_5k` gates its score to zero above
-  `MAX_VALID_STARVATION_RATE = 0.95`. At baseline the tank sits near that line:
-  sampling seeds 42/2/999 gives 0.8632 / 0.9482 / 0.9834, so one of the three is
-  already invalid and another is 0.3 points away, before any change. Read a
-  `survival_5k` delta with that in mind; a candidate can tip a borderline seed
-  over the gate without being broadly worse (see Theme 10.6's retracted
+  `MAX_VALID_STARVATION_RATE = 0.95`. The tank used to sit right on that line -
+  seeds 42/2/999 gave 0.8632 / 0.9482 / 0.9834, one already invalid and another
+  0.3 points away before any change - which is why a candidate could tip a
+  borderline seed over the gate without being broadly worse (see Theme 10.6's
+  retracted
   Finding 3).
 - **Tank benchmark population means fish**: `avg_pop`, `mean_population`, and
   `final_population` are fish population fields. `final_total_entities` includes
@@ -210,7 +245,10 @@ or champion metadata must be separate from Layer 1 algorithm improvements.*
   well-fed fish (e.g. ball play, poker) directly suppress birth rate and generation
   turnover, which the ecosystem_health benchmark penalizes. Corollary: "surplus"
   means energy above `max_energy`, not merely above the 40% safe threshold - a fish
-  below max is still climbing toward its next birth.
+  below max is still climbing toward its next birth. The bank is now *also* a
+  reserve of last resort (`_draw_on_reserves`), so a change that raises metabolic
+  cost is paid for twice: once in births forgone, once in reserves burned staying
+  alive.
 - **ecosystem_health scores are trajectory-sensitive on a single seed**: the score
   is linear in `max_generation` (a small integer), so any behavior change that
   perturbs trajectories can swing the seed-42 score several percent up or down for

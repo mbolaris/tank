@@ -1,0 +1,118 @@
+{
+  "benchmark_id": "tank/survival_5k",
+  "frames": 5000,
+  "solvent_bank_threshold": 0.5,
+  "seeds": [
+    {
+      "seed": 42,
+      "deaths": 145,
+      "summaries": [
+        {
+          "cause": "starvation",
+          "deaths": 88,
+          "solvent_deaths": 0,
+          "solvent_share": 0.0,
+          "mean_energy": 0.0,
+          "mean_bank": 0.0,
+          "median_bank": 0.0,
+          "max_bank": 0.0,
+          "total_bank_destroyed": 0.0
+        },
+        {
+          "cause": "old_age",
+          "deaths": 55,
+          "solvent_deaths": 54,
+          "solvent_share": 0.9818,
+          "mean_energy": 72.401,
+          "mean_bank": 314.864,
+          "median_bank": 261.445,
+          "max_bank": 866.277,
+          "total_bank_destroyed": 17317.5
+        },
+        {
+          "cause": "predation",
+          "deaths": 2,
+          "solvent_deaths": 2,
+          "solvent_share": 1.0,
+          "mean_energy": 98.605,
+          "mean_bank": 352.891,
+          "median_bank": 352.891,
+          "max_bank": 463.9,
+          "total_bank_destroyed": 705.8
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "deaths": 158,
+      "summaries": [
+        {
+          "cause": "starvation",
+          "deaths": 108,
+          "solvent_deaths": 0,
+          "solvent_share": 0.0,
+          "mean_energy": 0.0,
+          "mean_bank": 0.0,
+          "median_bank": 0.0,
+          "max_bank": 0.0,
+          "total_bank_destroyed": 0.0
+        },
+        {
+          "cause": "old_age",
+          "deaths": 47,
+          "solvent_deaths": 45,
+          "solvent_share": 0.9574,
+          "mean_energy": 78.686,
+          "mean_bank": 313.283,
+          "median_bank": 267.597,
+          "max_bank": 861.703,
+          "total_bank_destroyed": 14724.3
+        },
+        {
+          "cause": "predation",
+          "deaths": 3,
+          "solvent_deaths": 2,
+          "solvent_share": 0.6667,
+          "mean_energy": 108.334,
+          "mean_bank": 170.708,
+          "median_bank": 77.514,
+          "max_bank": 434.61,
+          "total_bank_destroyed": 512.1
+        }
+      ]
+    },
+    {
+      "seed": 999,
+      "deaths": 224,
+      "summaries": [
+        {
+          "cause": "starvation",
+          "deaths": 184,
+          "solvent_deaths": 0,
+          "solvent_share": 0.0,
+          "mean_energy": 0.0,
+          "mean_bank": 0.0,
+          "median_bank": 0.0,
+          "max_bank": 0.0,
+          "total_bank_destroyed": 0.0
+        },
+        {
+          "cause": "old_age",
+          "deaths": 40,
+          "solvent_deaths": 39,
+          "solvent_share": 0.975,
+          "mean_energy": 68.838,
+          "mean_bank": 255.606,
+          "median_bank": 222.898,
+          "max_bank": 802.64,
+          "total_bank_destroyed": 10224.2
+        }
+      ]
+    }
+  ],
+  "arm": "after",
+  "measured_at_commit": "this commit",
+  "how": "measured on the tree that carries _draw_on_reserves",
+  "reproduce": "python tools/measure_death_reserves.py benchmarks/tank/survival_5k.py --seeds 42,2,999",
+  "question": "Of the fish that starved to death, how many still held overflow reproduction energy they were not permitted to spend on surviving?"
+}

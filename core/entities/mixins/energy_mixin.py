@@ -13,7 +13,11 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.agents.components.reproduction_component import ReproductionComponent
-from core.config.fish import ENERGY_MAX_DEFAULT, OVERFLOW_ENERGY_BANK_MULTIPLIER
+from core.config.fish import (
+    ENERGY_MAX_DEFAULT,
+    OVERFLOW_ENERGY_BANK_MULTIPLIER,
+    STARVATION_THRESHOLD_RATIO,
+)
 from core.constants import DEATH_REASON_STARVATION
 from core.energy.energy_component import EnergyComponent
 from core.entities.base import EntityState
@@ -126,6 +130,7 @@ class EnergyManagementMixin:
         """
         old_energy = self._energy_component.energy
         new_energy = old_energy + amount
+        withdrawn = 0.0
 
         if amount > 0:
             if new_energy > self.max_energy:
@@ -138,17 +143,56 @@ class EnergyManagementMixin:
             final_energy = max(0.0, new_energy)
             self._energy_component.energy = final_energy
             if final_energy <= 0:
+                withdrawn = self._draw_on_reserves()
+                final_energy = self._energy_component.energy
+            if final_energy <= 0:
                 if self.state.state == EntityState.ACTIVE:
                     self.state.transition(EntityState.DEAD, reason=DEATH_REASON_STARVATION)
                 self._cached_is_dead = True
             elif self.state.state == EntityState.ACTIVE:
                 self._cached_is_dead = False
 
-        if hasattr(self, "environment") and hasattr(self.environment, "record_energy_delta"):
-            delta = self._energy_component.energy - old_energy
-            self.environment.record_energy_delta(self, delta, source)
+        # A reserve withdrawal is booked under its own source, so it is netted
+        # out here rather than flattering whatever cost triggered it.
+        self._record_energy_delta(self._energy_component.energy - old_energy - withdrawn, source)
+        if withdrawn:
+            self._record_energy_delta(withdrawn, "reserve_withdrawal")
 
         return self._energy_component.energy - old_energy
+
+    def _record_energy_delta(self, delta: float, source: str) -> None:
+        """Report an energy change to the world's energy tracker, if it has one."""
+        if delta and hasattr(self, "environment"):
+            recorder = getattr(self.environment, "record_energy_delta", None)
+            if recorder is not None:
+                recorder(self, delta, source)
+
+    def _draw_on_reserves(self) -> float:
+        """Spend banked reproduction energy rather than starve while holding it.
+
+        A fish banks everything it gains above ``max_energy`` (see
+        ``_route_overflow_energy``), and that bank used to be spendable on
+        offspring and nothing else. Measured, 51% of seed 42's
+        ``tank/survival_5k`` starvation deaths were fish dying at exactly zero
+        energy holding a mean of 147 banked units - one of them 540 against a
+        ``max_energy`` of 180 - and 29-32% on seeds 2 and 999, foreclosing 36,823
+        energy across the three (``research/starvation/``). A reserve an organism
+        may not metabolise is not a reserve.
+
+        The withdrawal restores only the starvation threshold, so a fish living
+        off its bank burns straight back through it and spends the interval
+        between withdrawals reading as starving to its own behaviour. It keeps
+        foraging rather than coasting on savings.
+
+        Returns:
+            Energy actually withdrawn, which is 0.0 for an empty bank - a fish
+            with nothing banked dies exactly as it did before.
+        """
+        needed = self.max_energy * STARVATION_THRESHOLD_RATIO
+        withdrawn = self._reproduction_component.consume_overflow_energy_bank(needed)
+        if withdrawn > 0:
+            self._energy_component.energy += withdrawn
+        return withdrawn
 
     def _route_overflow_energy(self, overflow: float) -> None:
         """Route overflow energy into reproduction bank.

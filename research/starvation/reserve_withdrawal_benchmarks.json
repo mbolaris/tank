@@ -1,0 +1,247 @@
+{
+  "change": "core/entities/mixins/energy_mixin.py::_draw_on_reserves",
+  "question": "Does letting a fish spend its own overflow reproduction bank before starving improve the tank, and what does it cost?",
+  "reproduce": "Run each benchmark on each seed twice: once in a worktree at the parent commit, once on this tree. e.g. python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42",
+  "notes": [
+    "The survival_5k mean gain of +57.8% is inflated by seed 999, which the benchmark gated to zero at baseline. Across the four seeds that were already valid the mean is 643.70 -> 837.98 (+30.2%); seed 999 goes from invalid to valid, which is a repair rather than a score.",
+    "avg_pop is unchanged to four decimals on every survival_5k seed: population is pinned by max_population, so the whole score delta is the energy term.",
+    "Generation turnover is the cost: survival_5k seed 999 loses one generation (5 -> 4), ecosystem_health_10k seed 42 loses one (8 -> 7). Reserves spent staying alive are reserves not spent on offspring.",
+    "heldout/survival_heldout_5k has no validity gate, so score_valid is null there rather than false."
+  ],
+  "rows": [
+    {
+      "benchmark": "heldout/survival_heldout_5k",
+      "seed": 2,
+      "baseline_score": 416.3815608884446,
+      "candidate_score": 548.6262105149733,
+      "baseline_starvation_rate": 0.9193,
+      "candidate_starvation_rate": 0.6591,
+      "baseline_valid": null,
+      "candidate_valid": null,
+      "baseline_max_generation": 4,
+      "candidate_max_generation": 4,
+      "baseline_death_causes": {
+        "predation": 3,
+        "starvation": 205,
+        "old_age": 15
+      },
+      "candidate_death_causes": {
+        "predation": 3,
+        "starvation": 87,
+        "old_age": 42
+      }
+    },
+    {
+      "benchmark": "heldout/survival_heldout_5k",
+      "seed": 42,
+      "baseline_score": 486.15280086285884,
+      "candidate_score": 506.08913039012646,
+      "baseline_starvation_rate": 0.6577,
+      "candidate_starvation_rate": 0.4607,
+      "baseline_valid": null,
+      "candidate_valid": null,
+      "baseline_max_generation": 4,
+      "candidate_max_generation": 3,
+      "baseline_death_causes": {
+        "predation": 1,
+        "starvation": 73,
+        "old_age": 37
+      },
+      "candidate_death_causes": {
+        "predation": 1,
+        "starvation": 41,
+        "old_age": 47
+      }
+    },
+    {
+      "benchmark": "heldout/survival_heldout_5k",
+      "seed": 999,
+      "baseline_score": 349.0219776965794,
+      "candidate_score": 514.2666468337277,
+      "baseline_starvation_rate": 0.9731,
+      "candidate_starvation_rate": 0.7389,
+      "baseline_valid": null,
+      "candidate_valid": null,
+      "baseline_max_generation": 4,
+      "candidate_max_generation": 4,
+      "baseline_death_causes": {
+        "starvation": 289,
+        "old_age": 8
+      },
+      "candidate_death_causes": {
+        "starvation": 116,
+        "old_age": 41
+      }
+    },
+    {
+      "benchmark": "tank/ecosystem_health_10k",
+      "seed": 7,
+      "baseline_score": 9.120401341516613,
+      "candidate_score": 13.250075294252783,
+      "baseline_starvation_rate": 0.8327,
+      "candidate_starvation_rate": 0.4812,
+      "baseline_valid": null,
+      "candidate_valid": null,
+      "baseline_max_generation": 8,
+      "candidate_max_generation": 8,
+      "baseline_death_causes": null,
+      "candidate_death_causes": null
+    },
+    {
+      "benchmark": "tank/ecosystem_health_10k",
+      "seed": 42,
+      "baseline_score": 9.73716040863487,
+      "candidate_score": 11.04041201493661,
+      "baseline_starvation_rate": 0.9091,
+      "candidate_starvation_rate": 0.608,
+      "baseline_valid": null,
+      "candidate_valid": null,
+      "baseline_max_generation": 8,
+      "candidate_max_generation": 7,
+      "baseline_death_causes": null,
+      "candidate_death_causes": null
+    },
+    {
+      "benchmark": "tank/ecosystem_health_10k",
+      "seed": 123,
+      "baseline_score": 9.248155375217678,
+      "candidate_score": 10.703735732220686,
+      "baseline_starvation_rate": 0.9573,
+      "candidate_starvation_rate": 0.7376,
+      "baseline_valid": null,
+      "candidate_valid": null,
+      "baseline_max_generation": 9,
+      "candidate_max_generation": 9,
+      "baseline_death_causes": null,
+      "candidate_death_causes": null
+    },
+    {
+      "benchmark": "tank/survival_5k",
+      "seed": 2,
+      "baseline_score": 513.473309824358,
+      "candidate_score": 822.4854898969128,
+      "baseline_starvation_rate": 0.9482,
+      "candidate_starvation_rate": 0.6835,
+      "baseline_valid": true,
+      "candidate_valid": true,
+      "baseline_max_generation": 4,
+      "candidate_max_generation": 4,
+      "baseline_death_causes": {
+        "starvation": 311,
+        "predation": 2,
+        "old_age": 15
+      },
+      "candidate_death_causes": {
+        "starvation": 108,
+        "predation": 3,
+        "old_age": 47
+      }
+    },
+    {
+      "benchmark": "tank/survival_5k",
+      "seed": 7,
+      "baseline_score": 749.4781982900204,
+      "candidate_score": 864.9060637113743,
+      "baseline_starvation_rate": 0.8219,
+      "candidate_starvation_rate": 0.4141,
+      "baseline_valid": true,
+      "candidate_valid": true,
+      "baseline_max_generation": 4,
+      "candidate_max_generation": 4,
+      "baseline_death_causes": {
+        "starvation": 180,
+        "old_age": 39
+      },
+      "candidate_death_causes": {
+        "starvation": 53,
+        "old_age": 75
+      }
+    },
+    {
+      "benchmark": "tank/survival_5k",
+      "seed": 42,
+      "baseline_score": 702.5775136245999,
+      "candidate_score": 818.4348777775728,
+      "baseline_starvation_rate": 0.8632,
+      "candidate_starvation_rate": 0.6069,
+      "baseline_valid": true,
+      "candidate_valid": true,
+      "baseline_max_generation": 4,
+      "candidate_max_generation": 4,
+      "baseline_death_causes": {
+        "starvation": 164,
+        "old_age": 25,
+        "predation": 1
+      },
+      "candidate_death_causes": {
+        "starvation": 88,
+        "old_age": 55,
+        "predation": 2
+      }
+    },
+    {
+      "benchmark": "tank/survival_5k",
+      "seed": 123,
+      "baseline_score": 609.2674835157783,
+      "candidate_score": 846.0904965680571,
+      "baseline_starvation_rate": 0.948,
+      "candidate_starvation_rate": 0.6897,
+      "baseline_valid": true,
+      "candidate_valid": true,
+      "baseline_max_generation": 4,
+      "candidate_max_generation": 4,
+      "baseline_death_causes": {
+        "starvation": 310,
+        "old_age": 16,
+        "predation": 1
+      },
+      "candidate_death_causes": {
+        "starvation": 120,
+        "old_age": 53,
+        "predation": 1
+      }
+    },
+    {
+      "benchmark": "tank/survival_5k",
+      "seed": 999,
+      "baseline_score": 0.0,
+      "candidate_score": 709.9187096315139,
+      "baseline_starvation_rate": 0.9834,
+      "candidate_starvation_rate": 0.8214,
+      "baseline_valid": false,
+      "candidate_valid": true,
+      "baseline_max_generation": 5,
+      "candidate_max_generation": 4,
+      "baseline_death_causes": {
+        "starvation": 355,
+        "old_age": 6
+      },
+      "candidate_death_causes": {
+        "starvation": 184,
+        "old_age": 40
+      }
+    }
+  ],
+  "summary": {
+    "tank/survival_5k": {
+      "seeds": 5,
+      "mean_baseline": 514.959,
+      "mean_candidate": 812.367
+    },
+    "tank/survival_5k_baseline_valid_only": {
+      "seeds": 4,
+      "mean_baseline": 643.699,
+      "mean_candidate": 837.979
+    },
+    "heldout/survival_heldout_5k": {
+      "seeds": 3,
+      "mean_baseline": 417.185,
+      "mean_candidate": 522.994
+    },
+    "tank/ecosystem_health_10k": {
+      "seeds": 3,
+      "mean_baseline": 9.369,
+      "mean_candidate": 11.665
+    }
+  }
+}
