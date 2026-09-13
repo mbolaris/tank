@@ -20,6 +20,7 @@ import {
     drawSelectionRing,
 } from '../shared/topDownHud';
 import { renderPlant, type PlantGenomeData } from '../../utils/plant';
+import { goalPalette, goalZoneRevealAlpha, scoringRadius } from '../../utils/goalZoneAppearance';
 
 /** Kinds whose heading is already conveyed by the sprite's own orientation. */
 const HEADING_IMPLIED_BY_SPRITE = new Set(['fish', 'food', 'plant_nectar']);
@@ -87,6 +88,10 @@ export class TankTopDownRenderer implements Renderer {
         scene.entities.forEach(entity => {
             this.drawEntity(ctx, entity);
         });
+
+        // Scoring circles sit directly above the hoops they belong to, before
+        // any HUD pass, so a revealed zone reads as part of the world.
+        this.drawGoalZoneReveals(ctx, scene.entities, options.buildMode ?? false);
 
         if (showEffects) {
             // Pass 2: birth effects (above entities)
@@ -324,31 +329,82 @@ export class TankTopDownRenderer implements Renderer {
         }
     }
 
+    /**
+     * A coral hoop seen from above, replacing a dashed circle captioned "GOAL".
+     *
+     * The ring is the object; the scoring circle it guards is drawn separately
+     * by `drawGoalZoneReveals`, only in Build Mode or as the ball closes in.
+     * Side is resolved with `goalSide` rather than by comparing `team` here, so
+     * this view and the side view cannot disagree about which end is which.
+     */
     private drawGoalZone(ctx: CanvasRenderingContext2D, entity: TankEntity) {
-        // Safe cast since we know backend sends team
-        const team = entity.team;
-
         const radius = entity.radius || 30;
-        const color = team === 'A' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 100, 255, 0.3)';
-        const borderColor = team === 'A' ? '#ff4444' : '#4444ff';
+        const palette = goalPalette(entity);
+        const ringRadius = radius * 0.66;
+        const thickness = Math.max(3, radius * 0.17);
 
-        // Goal area
-        ctx.fillStyle = color;
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-
+        // The hoop itself.
+        ctx.strokeStyle = palette.coral;
+        ctx.lineWidth = thickness;
         ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Label
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 16px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("GOAL", 0, 0);
+        // Lit inner edge, so the ring reads as a solid tube from above.
+        ctx.strokeStyle = palette.accent;
+        ctx.lineWidth = Math.max(1, thickness * 0.32);
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, ringRadius - thickness * 0.32, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Polyps at fixed angles, so the hoop does not shimmer frame to frame.
+        ctx.fillStyle = palette.accent;
+        const polypRadius = Math.max(1.6, radius * 0.08);
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 * i) / 6 + Math.PI / 12;
+            ctx.beginPath();
+            ctx.arc(Math.cos(angle) * ringRadius, Math.sin(angle) * ringRadius, polypRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    /**
+     * Scoring circles for every goal in the scene, in world coordinates.
+     *
+     * `buildTankScene` gives goal and ball centres in the same space, so the
+     * distance here is the one `GoalZone.check_goal` measures.
+     */
+    private drawGoalZoneReveals(
+        ctx: CanvasRenderingContext2D,
+        entities: TankEntity[],
+        buildMode: boolean
+    ) {
+        const goals = entities.filter((entity) => entity.kind === 'goal_zone');
+        if (goals.length === 0) return;
+        const ball = entities.find((entity) => entity.kind === 'ball');
+
+        for (const goal of goals) {
+            const radius = scoringRadius(goal.radius || 30, ball?.width);
+            const ballDistance = ball ? Math.hypot(ball.x - goal.x, ball.y - goal.y) : null;
+            const alpha = goalZoneRevealAlpha({ buildMode, ballDistance, scoringRadius: radius });
+            if (alpha <= 0) continue;
+
+            const palette = goalPalette(goal);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.translate(goal.x, goal.y);
+            ctx.fillStyle = palette.zoneFill;
+            ctx.strokeStyle = palette.zone;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
     }
 
     private drawSoccerEffect(ctx: CanvasRenderingContext2D, entity: TankEntity) {

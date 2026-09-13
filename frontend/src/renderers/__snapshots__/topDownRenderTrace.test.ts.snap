@@ -3022,19 +3022,37 @@ stroke()
 restore()
 save()
 translate(60,306)
-fillStyle = "rgba(100, 100, 255, 0.3)"
-strokeStyle = "#4444ff"
-lineWidth = 2
-setLineDash([5,5])
+strokeStyle = "#4fae86"
+lineWidth = 5.1000000000000005
 beginPath()
-arc(0,0,30,0,6.283185307179586)
-fill()
+arc(0,0,19.8,0,6.283185307179586)
 stroke()
-fillStyle = "#ffffff"
-font = "bold 16px Arial"
-textAlign = "center"
-textBaseline = "middle"
-fillText("GOAL",0,0)
+strokeStyle = "#d7f7b6"
+lineWidth = 1.6320000000000001
+globalAlpha = 0.8
+beginPath()
+arc(0,0,18.168,0,6.283185307179586)
+stroke()
+globalAlpha = 1
+fillStyle = "#d7f7b6"
+beginPath()
+arc(19.125331360523553,5.124617093029911,2.4,0,6.283185307179586)
+fill()
+beginPath()
+arc(5.124617093029915,19.12533136052355,2.4,0,6.283185307179586)
+fill()
+beginPath()
+arc(-14.00071426749364,14.000714267493642,2.4,0,6.283185307179586)
+fill()
+beginPath()
+arc(-19.125331360523553,-5.1246170930299115,2.4,0,6.283185307179586)
+fill()
+beginPath()
+arc(-5.124617093029927,-19.12533136052355,2.4,0,6.283185307179586)
+fill()
+beginPath()
+arc(14.000714267493638,-14.000714267493645,2.4,0,6.283185307179586)
+fill()
 restore()
 save()
 translate(412,569)
