@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import cast
 
-from backend.world_persistence import restore_world_from_snapshot
+from backend.restore_spawn import spawn_restored_entity
+from backend.world_persistence import (
+    _bootstrap_static_elements,
+    _bootstrap_transient_elements,
+    restore_world_from_snapshot,
+)
 from core.entities import Fish, Plant, PlantNectar
 from core.genetics import PlantGenome
 from core.movement_strategy import AlgorithmicMovement
@@ -233,3 +238,157 @@ def test_legacy_snapshot_lineage_restore_adds_missing_parent_placeholder():
     assert parent_record["is_placeholder"] is True
     assert child_record["parent_id"] == "10"
     assert "_original_parent_id" not in child_record
+
+
+def _soccer_entity_counts(engine) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for entity in engine.entities_list:
+        kind = getattr(entity, "snapshot_type", None)
+        if kind in ("ball", "goal_zone"):
+            counts[kind] = counts.get(kind, 0) + 1
+    return counts
+
+
+def _fresh_tank_engine():
+    config = {"headless": True, "auto_food_enabled": False}
+    adapter = WorldRegistry.create_world("tank", seed=42, config=config)
+    adapter.reset(seed=42, config=config)
+    return adapter, adapter.engine
+
+
+def _strip_soccer_entities(adapter, engine) -> None:
+    """Leave the engine in the state a restored world arrives in: no soccer."""
+    for entity in list(engine.entities_list):
+        if getattr(entity, "snapshot_type", None) in ("ball", "goal_zone"):
+            engine.remove_entity(entity)
+    engine.environment.ball = None
+    engine.environment.goal_manager = None
+    adapter.step()
+    assert _soccer_entity_counts(engine) == {}
+
+
+def test_restore_bootstraps_soccer_objects_while_a_phase_is_running():
+    """A restore that lands mid-frame must still get its ball and goals.
+
+    `engine.add_entity` refuses to run inside a phase, and restoration does not
+    run in lockstep with the simulation loop. The refusal used to be swallowed
+    as a warning, so a restored tank came back with every other entity intact
+    and no ball and no goal zones for the life of the world - which no amount of
+    flipping the ball/goals toggle brought back.
+    """
+    from core.update_phases import UpdatePhase
+
+    adapter, engine = _fresh_tank_engine()
+    _strip_soccer_entities(adapter, engine)
+
+    # Stand exactly where the failure happened: mid-frame.
+    engine._current_phase = UpdatePhase.ENTITY_ACT
+    try:
+        _bootstrap_transient_elements(engine)
+    finally:
+        engine._current_phase = None
+
+    adapter.step()
+    assert _soccer_entity_counts(engine) == {"ball": 1, "goal_zone": 2}
+
+
+def test_restore_bootstraps_soccer_objects_between_frames():
+    """The ordinary, not-in-a-phase path must keep working unchanged."""
+    adapter, engine = _fresh_tank_engine()
+    _strip_soccer_entities(adapter, engine)
+
+    _bootstrap_transient_elements(engine)
+
+    adapter.step()
+    assert _soccer_entity_counts(engine) == {"ball": 1, "goal_zone": 2}
+
+
+def test_restored_goals_carry_the_side_the_ui_reads():
+    """The renderer resolves which end is which from goal_id and team.
+
+    `frontend/src/utils/goalZoneAppearance.ts` keys the goal palette on these
+    exact values, so a change here would silently make both ends look alike.
+    """
+    adapter, engine = _fresh_tank_engine()
+    _strip_soccer_entities(adapter, engine)
+    _bootstrap_transient_elements(engine)
+    adapter.step()
+
+    goals = {
+        entity.goal_id: entity.team
+        for entity in engine.entities_list
+        if getattr(entity, "snapshot_type", None) == "goal_zone"
+    }
+    assert goals == {"goal_left": "A", "goal_right": "B"}
+
+
+def test_static_castle_bootstrap_survives_a_running_phase():
+    """The castle bootstrap had the same hazard, and it is not even guarded.
+
+    Mid-phase it raised straight out of `restore_world_from_snapshot`, failing
+    the whole restore rather than losing one entity.
+    """
+    from core.update_phases import UpdatePhase
+
+    adapter, engine = _fresh_tank_engine()
+    for entity in list(engine.entities_list):
+        if getattr(entity, "snapshot_type", None) == "castle":
+            engine.remove_entity(entity)
+    adapter.step()
+
+    engine._current_phase = UpdatePhase.ENTITY_ACT
+    try:
+        _bootstrap_static_elements(engine)
+    finally:
+        engine._current_phase = None
+
+    adapter.step()
+    castles = [e for e in engine.entities_list if getattr(e, "snapshot_type", None) == "castle"]
+    assert len(castles) == 1
+
+
+def test_spawn_restored_entity_prefers_the_immediate_path():
+    """Immediate is the default: a deferred castle would fail restore validation."""
+    calls: list[str] = []
+
+    class Engine:
+        def add_entity(self, entity):
+            calls.append("add_entity")
+
+        def request_spawn(self, entity, reason=""):
+            calls.append("request_spawn")
+
+    spawn_restored_entity(Engine(), object())
+    assert calls == ["add_entity"]
+
+
+def test_spawn_restored_entity_queues_when_the_engine_is_mid_frame():
+    calls: list[str] = []
+
+    class Engine:
+        def add_entity(self, entity):
+            calls.append("add_entity")
+            raise RuntimeError(
+                "Unsafe call to add_entity during phase UpdatePhase.ENTITY_ACT. "
+                "Use request_spawn() instead."
+            )
+
+        def request_spawn(self, entity, reason=""):
+            calls.append(f"request_spawn:{reason}")
+            return True
+
+    spawn_restored_entity(Engine(), object())
+    assert calls == ["add_entity", "request_spawn:world_restore"]
+
+
+def test_spawn_restored_entity_reraises_when_there_is_no_queue():
+    """An engine with no request_spawn must surface the refusal, not swallow it."""
+
+    class Engine:
+        def add_entity(self, entity):
+            raise RuntimeError("Unsafe call to add_entity during phase X.")
+
+    import pytest
+
+    with pytest.raises(RuntimeError, match="Unsafe call"):
+        spawn_restored_entity(Engine(), object())

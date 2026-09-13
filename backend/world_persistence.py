@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from backend.lineage_restore import advance_fish_id_counter, restore_lineage_state
+from backend.restore_spawn import spawn_restored_entity
 from backend.runner_stores import capture_runner_stores, restore_runner_stores
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
 from core.exceptions import PersistenceError
@@ -76,7 +77,7 @@ def _bootstrap_transient_elements(engine: Any) -> None:
                 logger.info("SOCCER: Ball already exists, using existing")
             else:
                 ball = Ball(env, width / 2, height / 2)
-                engine.add_entity(ball)
+                spawn_restored_entity(engine, ball)
                 soccer_system.set_ball(ball)
                 # Store reference to prevent duplication
                 env.ball = ball
@@ -100,12 +101,12 @@ def _bootstrap_transient_elements(engine: Any) -> None:
                 logger.info("SOCCER: Goals already exist, using existing")
             else:
                 goal_a = GoalZone(env, 50.0, height / 2, "A", goal_id="goal_left", radius=40.0)
-                engine.add_entity(goal_a)
+                spawn_restored_entity(engine, goal_a)
 
                 goal_b = GoalZone(
                     env, width - 50.0, height / 2, "B", goal_id="goal_right", radius=40.0
                 )
-                engine.add_entity(goal_b)
+                spawn_restored_entity(engine, goal_b)
 
                 # Create and set goal manager
                 goal_manager = GoalZoneManager()
@@ -458,8 +459,7 @@ def restore_world_from_snapshot(
             f"({restored_count} entities)"
         )
 
-        # Bootstrap transient elements (soccer ball/goals)
-        # These are never persisted and must be re-created on restore
+        # Transient elements (soccer ball/goals) are never persisted.
         _bootstrap_transient_elements(engine)
 
         # Ensure required static elements exist (tests/partial snapshots may omit them).
@@ -529,7 +529,7 @@ def _bootstrap_static_elements(engine: Any) -> None:
         width=castle_layout.width,
         height=castle_layout.height,
     )
-    engine.add_entity(castle)
+    spawn_restored_entity(engine, castle)
 
 
 def list_world_snapshots(world_id: str) -> list[dict[str, Any]]:
