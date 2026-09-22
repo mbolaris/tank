@@ -26,9 +26,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Pinned, not ubuntu-latest: tank champion scores are only bit-identical on
+# the platform that produced them (see docs/CROSS_PLATFORM_DIVERGENCE.md), and
+# ubuntu-latest moves to Ubuntu 26 from 2026-10-19. A silent image change would
+# turn every tank champion red at once. Bump this deliberately, together with a
+# CI re-baseline of champions/tank/ (rebaseline_tank=true), never on its own.
 jobs:
   verify-champions:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -58,7 +63,7 @@ jobs:
           if-no-files-found: ignore
 
   benchmark-gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
@@ -105,7 +110,7 @@ jobs:
     # must use CI's own canonical scores rather than a local run. Dispatch with
     # rebaseline_tank=true, then pull the "tank-champion-rebaseline" artifact.
     if: github.event_name == 'workflow_dispatch' && inputs.rebaseline_tank
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v3
@@ -138,7 +143,7 @@ jobs:
     # a bit-exact hash per float primitive so CI's Linux/CPython 3.10 can be
     # diffed against a dev machine. See tools/float_fingerprint.py.
     if: github.event_name == 'workflow_dispatch' && inputs.float_fingerprint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3

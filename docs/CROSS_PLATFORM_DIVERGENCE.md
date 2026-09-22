@@ -12,6 +12,11 @@ Champions must still be re-baselined from CI artifacts (see
 `bench.yml`), since local runs still diverge for anything that exercises
 those call sites.
 
+The CI side of "the platform that produced them" is pinned too: every
+`bench.yml` job runs on `ubuntu-24.04`, not `ubuntu-latest`, so a GitHub image
+roll (Ubuntu 26 from 2026-10-19) cannot silently invalidate the tank champions.
+Moving the pin is a champion change: bump it in the same PR as a CI re-baseline.
+
 ## The symptom
 
 Tank benchmarks reproduce bit-for-bit *within* a machine and not *across*
