@@ -120,6 +120,10 @@ class AutoEvaluatePokerGame:
     rotating seat assignments so every player experiences every position with the same cards.
     """
 
+    #: Sleep ~1 ms per hand so a background run yields the GIL. Clear it on the
+    #: simulation thread, where it only stalls the frame (~15.6 ms/hand on Windows).
+    yield_between_hands: bool = True
+
     def __init__(
         self,
         game_id: str,
@@ -215,10 +219,6 @@ class AutoEvaluatePokerGame:
 
         # Decision RNG for deterministic standard algorithm decisions
         self._decision_rng = random.Random(rng_seed)
-
-    def get_players(self) -> list[EvalPlayerState]:
-        """Get list of players."""
-        return self.players
 
     def _build_deal(self) -> Deal:
         """Create the next deal, applying position rotation when enabled."""
@@ -417,8 +417,6 @@ class AutoEvaluatePokerGame:
         Returns:
             Final evaluation statistics
         """
-        # Auto-evaluation runs silently in background
-
         # Baseline snapshot before any hands are played
         self._record_hand_performance()
 
@@ -439,11 +437,9 @@ class AutoEvaluatePokerGame:
                     self.winner = active_players[0].name
                 break
 
-            # Play one hand
             self.play_hand()
-
-            # Yield GIL to prevent starving main thread
-            time.sleep(0.001)
+            if self.yield_between_hands:
+                time.sleep(0.001)
 
         # If we completed all hands, determine winner by energy
         if not self.game_over:
@@ -526,6 +522,7 @@ class AutoEvaluatePokerGame:
         big_blind: float = 100.0,
         starting_stack: float = 10_000.0,
         rng_seed: int | None = None,
+        yield_between_hands: bool = True,
     ) -> "AutoEvaluateStats":
         """Run a heads-up match between two algorithms.
 
@@ -538,6 +535,7 @@ class AutoEvaluatePokerGame:
             big_blind: Big blind amount
             starting_stack: Starting chip stack for each player
             rng_seed: Optional RNG seed for deterministic dealing
+            yield_between_hands: See the class attribute of the same name
 
         Returns:
             AutoEvaluateStats with net_bb_for_candidate field populated
@@ -577,6 +575,7 @@ class AutoEvaluatePokerGame:
             rng_seed=rng_seed,
             include_standard_player=False,  # Pure HU, no standard player
         )
+        game.yield_between_hands = yield_between_hands
 
         stats = game.run_evaluation()
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 import copy
 import importlib
 import logging
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from random import Random
@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,
     SingleBenchmarkResult,
-    evaluate_vs_single_benchmark_duplicate,
+    iter_vs_single_benchmark_duplicate,
 )
 from core.skill.ladder import RungResult, SkillLadderSummary, ladder_position_index
 from core.skill.snapshots import SkillSnapshot, SkillSnapshotStore
@@ -126,6 +126,7 @@ class PeriodicBenchmarkEvaluator:
         self._rung_index = 0
         self._current_frame = 0
         self._current_results: dict[str, SingleBenchmarkResult] = {}
+        self._rung_steps: Generator[None, None, SingleBenchmarkResult] | None = None
 
     @property
     def active(self) -> bool:
@@ -146,7 +147,12 @@ class PeriodicBenchmarkEvaluator:
         return sorted(eligible, key=_poker_net_energy, reverse=True)[: self.max_fish_per_pass]
 
     def maybe_run(self, frame: int, fish_population: list[Fish]) -> None:
-        """Start or advance a pass, evaluating at most one fish/rung per call."""
+        """Start or advance a pass, playing at most one heads-up match per call.
+
+        This runs inside the simulation frame, so a call's cost is a frame's
+        stall. One match is ``hands_per_match`` hands (50 live, tens of ms);
+        a whole rung is ten of them, and a pass is 3 fish x 4 rungs.
+        """
         if self._active:
             self._advance(frame)
             return
@@ -172,7 +178,9 @@ class PeriodicBenchmarkEvaluator:
     def _advance(self, frame: int) -> None:
         fish = self._subjects[self._subject_index]
         rung_id = POKER_LADDER_RUNGS[self._rung_index]
-        result = self._evaluate_rung(fish, rung_id)
+        result = self._step_rung(fish, rung_id)
+        if result is None:
+            return  # this rung has matches left; the next frame plays one
         self._current_results[rung_id] = result
 
         if self._rung_index + 1 < len(POKER_LADDER_RUNGS):
@@ -190,8 +198,21 @@ class PeriodicBenchmarkEvaluator:
         self._subjects = []
         self._next_eval_frame = frame + self.eval_interval_frames
 
-    def _evaluate_rung(self, fish: Any, rung_id: str) -> SingleBenchmarkResult:
-        """Evaluate one fish/rung using a fresh strategy and private seeds."""
+    def _step_rung(self, fish: Fish, rung_id: str) -> SingleBenchmarkResult | None:
+        """Play the next match of this fish/rung; return the result once done."""
+        if self._rung_steps is None:
+            self._rung_steps = self._start_rung(fish, rung_id)
+        with _preserve_global_random_state():
+            try:
+                next(self._rung_steps)
+            except StopIteration as done:
+                self._rung_steps = None
+                result: SingleBenchmarkResult = done.value
+                return result
+        return None
+
+    def _start_rung(self, fish: Fish, rung_id: str) -> Generator[None, None, SingleBenchmarkResult]:
+        """Set up one fish/rung with a fresh strategy and private seeds."""
         fish_id = int(fish.fish_id)
         rung_index = POKER_LADDER_RUNGS.index(rung_id)
         seed = self.cfg.base_seed + self._eval_counter * 100_000 + fish_id * 100 + rung_index
@@ -202,8 +223,10 @@ class PeriodicBenchmarkEvaluator:
             benchmark_weights={rung_id: 1.0},
             base_seed=seed,
         )
-        with _preserve_global_random_state():
-            return evaluate_vs_single_benchmark_duplicate(strategy, rung_id, cfg)
+        # No per-hand sleep: this is the simulation thread, and sleeping here
+        # only lengthens the frame (by ~8 s per rung on Windows, where a 1 ms
+        # sleep lasts a full timer tick).
+        return iter_vs_single_benchmark_duplicate(strategy, rung_id, cfg, yield_between_hands=False)
 
     def _record_subject(self, fish: Any) -> None:
         fish_id = int(fish.fish_id)
