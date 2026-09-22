@@ -281,8 +281,7 @@ class StartupManager:
         try:
             from backend.connection_persistence import load_connections
 
-            restored_connections = load_connections(self.connection_manager)
-            logger.info(f"Restored {restored_connections} connection(s)")
+            load_connections(self.connection_manager, self.world_manager, self.server_id)
         except Exception as e:
             logger.error(f"Error restoring connections: {e}", exc_info=True)
             logger.info("Continuing without restored connections")

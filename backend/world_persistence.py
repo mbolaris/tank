@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from backend.atomic_json import quarantine_if_corrupt, write_json_atomic
 from backend.lineage_restore import advance_fish_id_counter, restore_lineage_state
 from backend.restore_spawn import spawn_restored_entity
 from backend.runner_stores import capture_runner_stores, restore_runner_stores
@@ -179,9 +180,7 @@ def save_snapshot_data(world_id: str, snapshot: dict[str, Any]) -> str | None:
         world_dir = ensure_world_directory(world_id)
         snapshot_file = world_dir / f"snapshot_{timestamp}.json"
 
-        # Write to file
-        with open(snapshot_file, "w") as f:
-            json.dump(snapshot, f, indent=2)
+        write_json_atomic(snapshot_file, snapshot)
 
         logger.info(
             f"Saved world {world_id[:8]} state to {snapshot_file.name} "
@@ -563,7 +562,7 @@ def list_world_snapshots(world_id: str) -> list[dict[str, Any]]:
                 )
         except Exception as e:
             logger.warning(f"Failed to read snapshot {snapshot_file.name}: {e}")
-            continue
+            quarantine_if_corrupt(snapshot_file, e)
 
     return snapshots
 

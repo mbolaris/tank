@@ -19,7 +19,11 @@ def _run_connection_persistence():
     print("=" * 60)
 
     # Clean up any existing connections file
-    connections_file = Path("data/connections.json")
+    # The autouse ``mock_data_dir`` fixture points this at a temp dir, so the
+    # unlink below can never delete a developer's real connections.
+    import backend.connection_persistence as connection_persistence
+
+    connections_file = connection_persistence.CONNECTIONS_FILE
     if connections_file.exists():
         print(f"Removing existing {connections_file}")
         connections_file.unlink()
