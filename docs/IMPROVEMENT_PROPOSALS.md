@@ -45,9 +45,11 @@ it has drifted. See the closing rule at the bottom of this file.
   CI-gated benchmarks (see `docs/CROSS_PLATFORM_DIVERGENCE.md`), but 1.0's
   own CI-run-to-run instability (a separate, unresolved problem) is still the
   higher-priority open half.
-- **13.1** (added 2026-09-22) — the live server's broadcast stalls ~100 ms a
-  few times every 5 s. It is measurement-first, trajectory-neutral work that
-  users can see. **13.6** is the `S`-sized Layer 2 warm-up in the same area.
+- **13.2** (added 2026-09-22) — full-sync frames cost 60–80 ms every 3 s and
+  are now the largest source of live broadcast stalls. 13.1 found and fixed the
+  first one (a blocking psutil call on the event loop) and left instrumentation
+  in place to measure this one. **13.6** is the `S`-sized Layer 2 warm-up in
+  the same area.
 
 **Note the shape of that list.** With **7.3**, **7.4**, and **7.6** all
 shipped, what remains here is one item blocked on a maintainer product
@@ -1679,51 +1681,70 @@ sampling in the profile doc remain behavior changes.
 FPS held at 30.0 throughout, so the simulation keeps up. The problems are hitches in what
 the viewer receives, and the cost trend as the population grows.
 
-### 13.1 Find the ~100 ms broadcast stall — `M` · ★★★ · Layer 2 (serving only)
+### 13.1 Find the ~100 ms broadcast stall — `M` · ★★★ · Layer 2 (serving only) — CAUSE FOUND AND FIXED (2026-09-22)
 
-**The evidence points away from state building.** Each `SLOW` line splits a broadcast into
-`get`, `ser` and `send`. The sum clusters near 100 ms. When `get` is small, `send` is about
-100 ms (`get=9 send=102`, `get=16 send=103`, `get=25 send=103`). When `send` is small,
-`get` is about 100 ms (`get=101 send=1`, many times). The runner's own timers put the work
-inside `get` at roughly 10 ms (`stats` ~3 ms + `snapshot` ~6 ms). So a periodic ~100 ms
-stall lands in whichever `await` is in flight. Either the asyncio event loop is blocked, or
-it cannot get the GIL. At the 15 Hz target (66 ms interval), each stall costs one or two
-broadcasts, which shows up as a visible hitch in the tank's motion.
+**The cause was a 100 ms `sleep` on the event loop, every 2 s.**
+`AppContext.get_server_info` (`backend/app_factory.py`) called
+`psutil.Process().cpu_percent(interval=0.1)`, and with `interval` set, psutil sleeps for
+that long. It runs inside coroutines: the discovery heartbeat (`HEARTBEAT_INTERVAL = 2.0`,
+which its comment says was cut from 30 s, making the same block 15x more frequent: 5% of the loop's time)
+and `GET /api/servers/local`. Each call froze every WebSocket send in flight. That
+produced 2.5 stalls per 5 s status window, which matches the ~3 `SLOW` warnings per window
+in the original log. The fix keeps one `psutil.Process` and calls `cpu_percent(interval=None)`.
+That never sleeps and reports CPU use since the previous call, i.e. over the last heartbeat.
+`tests/test_broadcast_stall.py` pins it.
 
-**Candidate causes.** None has been confirmed.
+**How it was found.** This followed the plan below, and the numbers ruled candidates in or
+out before anything was changed:
 
-1. **GIL convoy.** The sim thread (`backend/runner/loop.py`) runs 11–16 ms of pure Python
-   per step at this population, and the event-loop thread needs the GIL back after every I/O
-   operation. Many small socket writes that each wait up to one switch interval (5 ms) would
-   add up to this kind of number.
-2. **`runner.lock` held for longer than the timed step.** Under the lock, `loop.py` also runs
-   `runner._sample_metrics_if_due()`: metrics history every 500 frames, the story and legend
-   samplers, and the pursuit-variant scan. None of these appears in the status line.
-   `get_state` (`backend/simulation_runner.py`) waits on this lock in an executor thread, and
-   that wait is reported as `get`.
-3. **Synchronous work on the event loop.** The migration scheduler checks every 2 s, and the
-   discovery heartbeat and auto-save also run there.
+1. `SLOW` lines now split `get` into `queue` (submit to executor start), `work` (the fetch,
+   including the lock), and `resume` (fetch done to coroutine running again), and add
+   `gap` (send-to-send, what a client actually sees).
+2. The status line gained `lock_wait` (time spent waiting for `runner.lock` in
+   `get_state`), `telemetry` (`_sample_metrics_if_due`, which runs under the lock), `autoeval`,
+   and `loop_lag` (`backend/runner/loop_lag.py`: a 20 ms sleep probe reporting
+   p50/p99/max overshoot over 5 s).
+3. These ran on an isolated second server (port 8001, fresh world, seed 42) with a single
+   WebSocket client and no browser, so frontend REST polling was excluded as a cause.
 
-**Plan.**
-1. Split `get` into *lock wait* and *build* inside `SimulationRunner.get_state`, and log both
-   in the `SLOW` line.
-2. Add an event-loop lag probe: a task that sleeps 10 ms and records the overshoot. Report
-   p50/max beside `update=…` in the status line.
-3. Time `_sample_metrics_if_due` and `_start_auto_evaluation_if_needed`, and add them to the
-   status line.
-4. Take `py-spy dump` / `py-spy record --native` on a live server during a burst of `SLOW`
-   warnings. This is how `7939e8eb` found the 78%-of-frame taxonomy scan.
-5. Fix the cause the data names. Do not guess.
+What the instrumented run showed: `lock_wait` 0.0 ms average, `telemetry` ~0, `queue` ~0.
+That rules out candidates 2 (a lock held too long) and the executor. **`loop_lag` max was
+81–115 ms in almost every window, even at 13 fish**, when the step costs 4 ms. That rules
+out population-driven GIL contention (candidate 1) and points at synchronous work on the
+loop (candidate 3). A 100 ms block, minus however far the probe already was into its 20 ms
+sleep, gives exactly 80–100 ms.
 
-**Acceptance.** Every `SLOW` warning names its cause. After the fix, fewer than one
-broadcast per minute exceeds 66 ms at 80–100 fish on the same Windows machine.
+**Before and after.** Same machine, isolated server, one WebSocket client, 150 s from a
+fresh world at seed 42:
+
+| | broadcast rate | gap p90 | gap p99 | gaps > 133 ms | loop_lag max per window |
+|---|---|---|---|---|---|
+| before | 13.6 Hz | 96 ms | 169 ms | 99 | 81–115 ms |
+| after | 14.2 Hz | 91 ms | 159 ms | 49 | 39–88 ms (typically ~45) |
+
+For scale, the user's own server (browser attached, frame ~18k, 70–100 fish) measured 10.9 Hz
+with p90 159 ms and p99 270 ms before the fix. It has not been re-measured since, because it
+is still running the old code.
+
+**Acceptance is not met yet.** Every `SLOW` line now names its cause, but fewer than one
+broadcast per minute over 66 ms is still far off. The remainder has a clear cause:
+full-sync fetches take `work=62–78 ms` every 3 s (**13.2**). That is pure Python on an
+executor thread, so it also slows the event loop and the sim thread (`resume`/`queue` of
+20–50 ms on those fetches), and a slow send pushes out the next broadcast's `gap`. Do
+13.2 next. Leave 13.1 open until the rate and gap targets hold on the live server.
+
+**Also noticed, not fixed:** the first ~10 s after startup produce gaps of 200–315 ms
+(`loop_lag` p99 1,198 ms in the first window) while the server warms up. It is one-off,
+so it is low priority.
 
 ### 13.2 Full-sync frames cost ~50 ms of entity snapshot — `S` · ★★ · Layer 2
 
 At 60+ fish, `snapshot` averages 5–8 ms, yet its max is 47–60 ms in *every* 5 s status
 window. `StatePublisher` forces a full sync every 90 frames (`delta_sync_interval=90`,
 `backend/simulation_runner.py:141`), which is every 3 s, so every window contains at least
-one. That makes full-sync frames the likely spike. It is plausible but not confirmed.
+one. **Confirmed by 13.1's split timings:** full-sync fetches show `work=62–78 ms` while
+delta fetches show `work≈10 ms`. They are now the largest remaining source of broadcast
+stalls, both directly and because they take the interpreter lock from the event loop.
 
 **Plan.** Tag the `snapshot` timer with full versus delta. If full frames are the spike,
 profile `stats_collector.collect_entities` on a full frame and cache the per-entity parts

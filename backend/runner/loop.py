@@ -16,6 +16,7 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
+from backend.runner.loop_lag import LOOP_LAG
 from core.worlds.interfaces import FAST_STEP_ACTION
 
 if TYPE_CHECKING:
@@ -54,7 +55,11 @@ def run_simulation_loop(runner: SimulationRunner) -> None:
                                 runner.world.step()
                             runner.perf_tracker.stop("update")
                             stepped = True
+                            # Still under the lock, so it delays get_state
+                            # exactly as the step does; time it separately.
+                            runner.perf_tracker.start("telemetry")
                             runner._sample_metrics_if_due()
+                            runner.perf_tracker.stop("telemetry")
                         except Exception as e:
                             logger.error(
                                 f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",
@@ -62,7 +67,9 @@ def run_simulation_loop(runner: SimulationRunner) -> None:
                             )
                             # Continue running even if update fails
 
+                runner.perf_tracker.start("autoeval")
                 runner._start_auto_evaluation_if_needed()
+                runner.perf_tracker.stop("autoeval")
 
                 # Yield to keep the main server thread/event loop responsive
                 # (important for Ctrl+C handling under heavy simulation load).
@@ -159,5 +166,5 @@ def _log_status(runner: SimulationRunner) -> None:
         f"Plants={stats.get('plant_count', 0)}, "
         f"Gen={stats.get('max_generation', 0)}, "
         f"Energy={stats.get('total_energy', 0.0):.0f}"
-        f"{migration_str}{poker_str}{perf_log}"
+        f"{migration_str}{poker_str}{perf_log}{LOOP_LAG.summary()}"
     )

@@ -39,6 +39,17 @@ class PerfTracker:
             return 0.0
 
         duration_ms = (time.perf_counter() - start_time) * 1000.0
+        self.record(name, duration_ms)
+        return duration_ms
+
+    def record(self, name: str, duration_ms: float) -> None:
+        """Record an externally measured duration.
+
+        Unlike start/stop this keeps no per-name start time, so it is safe to
+        call from several threads timing the same operation concurrently.
+        """
+        if not self._enable_logging:
+            return
 
         if name not in self._stats:
             self._stats[name] = {"count": 0, "total_ms": 0.0, "max_ms": 0.0, "last_log": 0.0}
@@ -49,15 +60,15 @@ class PerfTracker:
         if duration_ms > stat["max_ms"]:
             stat["max_ms"] = duration_ms
 
-        return duration_ms
-
     def get_summary_and_reset(self) -> str:
         """Get a loggable summary string of all stats and reset them."""
         if not self._enable_logging:
             return ""
 
         parts = []
-        for name, stat in self._stats.items():
+        # Snapshot the items: other threads (the broadcast executor) may add a
+        # new name while the simulation thread is summarizing.
+        for name, stat in list(self._stats.items()):
             if stat["count"] > 0:
                 avg_ms = stat["total_ms"] / stat["count"]
                 parts.append(f"{name}={avg_ms:.1f}ms(max {stat['max_ms']:.1f})")
