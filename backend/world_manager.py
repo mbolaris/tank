@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import WebSocket
 
+from backend.connection_persistence import prune_stale_connections
 from backend.runner.runner_protocol import RunnerProtocol
 from backend.simulation_runner import SimulationRunner
 from backend.world_registry import create_world, get_all_world_metadata, get_world_metadata
@@ -213,8 +214,7 @@ class WorldManager:
         if self._default_world_id == world_id:
             self._default_world_id = next(iter(self._worlds), None)
 
-        if self.connection_manager:
-            self.connection_manager.validate_connections(list(self._worlds.keys()))
+        prune_stale_connections(self.connection_manager, list(self._worlds))
 
         logger.info("Deleted world: %s (%s)", world_id[:8], instance.world_type)
 

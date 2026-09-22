@@ -42,9 +42,14 @@ from __future__ import annotations
 import math
 import random
 import statistics
+from collections.abc import Generator
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
+
+if TYPE_CHECKING:
+    from core.poker.evaluation.auto_evaluate_poker import AutoEvaluateStats
 
 
 @dataclass
@@ -201,6 +206,33 @@ def evaluate_vs_single_benchmark_duplicate(
     Returns:
         SingleBenchmarkResult with bb/100 and confidence interval
     """
+    steps = iter_vs_single_benchmark_duplicate(candidate_algo, benchmark_id, cfg)
+    while True:
+        try:
+            next(steps)
+        except StopIteration as done:
+            result: SingleBenchmarkResult = done.value
+            return result
+
+
+def iter_vs_single_benchmark_duplicate(
+    candidate_algo: PokerStrategyAlgorithm,
+    benchmark_id: str,
+    cfg: BenchmarkEvalConfig,
+    *,
+    yield_between_hands: bool = True,
+) -> Generator[None, None, SingleBenchmarkResult]:
+    """:func:`evaluate_vs_single_benchmark_duplicate`, one heads-up match per step.
+
+    Yields between matches (two per duplicate set) and returns the result
+    from ``StopIteration.value``, so N matches take exactly N steps. Driving it to the end plays exactly the same
+    hands in the same order as the one-shot call, so the result is identical;
+    stepping it lets a caller that shares a thread with the simulation spread
+    the evaluation across frames instead of stalling one frame for all of it.
+
+    ``yield_between_hands`` is forwarded to every match; pass False when
+    running on the simulation thread (see ``AutoEvaluatePokerGame``).
+    """
     # Import here to avoid circular import with core.poker.evaluation.auto_evaluate_poker
     from core.poker.evaluation.auto_evaluate_poker import (
         AutoEvaluatePokerGame,
@@ -216,38 +248,36 @@ def evaluate_vs_single_benchmark_duplicate(
     total_hands = 0
     total_net_bb = 0.0  # big blinds won by candidate
 
-    for dup_idx in range(cfg.num_duplicate_sets):
-        if is_shutdown_requested():
-            break
+    def play(candidate_seat: int, seed: int) -> AutoEvaluateStats:
+        return AutoEvaluatePokerGame.run_heads_up(
+            candidate_algo=candidate_algo,
+            benchmark_algo=benchmark_algo,
+            candidate_seat=candidate_seat,
+            num_hands=cfg.hands_per_match,
+            small_blind=cfg.small_blind,
+            big_blind=cfg.big_blind,
+            starting_stack=cfg.starting_stack,
+            rng_seed=seed,
+            yield_between_hands=yield_between_hands,
+        )
 
+    matches_played = 0
+    for dup_idx in range(cfg.num_duplicate_sets):
         seed = cfg.base_seed + dup_idx
 
-        # Seat 0: candidate vs benchmark
-        stats_a = AutoEvaluatePokerGame.run_heads_up(
-            candidate_algo=candidate_algo,
-            benchmark_algo=benchmark_algo,
-            candidate_seat=0,
-            num_hands=cfg.hands_per_match,
-            small_blind=cfg.small_blind,
-            big_blind=cfg.big_blind,
-            starting_stack=cfg.starting_stack,
-            rng_seed=seed,
-        )
-
-        if is_shutdown_requested():
+        # Seat 0: candidate vs benchmark. Seat 1: benchmark vs candidate
+        # (candidate on the right / BB). Same seed, so the same cards.
+        seat_stats: list[AutoEvaluateStats] = []
+        for candidate_seat in (0, 1):
+            if matches_played:
+                yield  # between matches, never before the first or after the last
+            if is_shutdown_requested():
+                break
+            seat_stats.append(play(candidate_seat, seed))
+            matches_played += 1
+        if len(seat_stats) < 2:
             break
-
-        # Seat 1: benchmark vs candidate (candidate on the right / BB)
-        stats_b = AutoEvaluatePokerGame.run_heads_up(
-            candidate_algo=candidate_algo,
-            benchmark_algo=benchmark_algo,
-            candidate_seat=1,
-            num_hands=cfg.hands_per_match,
-            small_blind=cfg.small_blind,
-            big_blind=cfg.big_blind,
-            starting_stack=cfg.starting_stack,
-            rng_seed=seed,
-        )
+        stats_a, stats_b = seat_stats
 
         net_bb_a = stats_a.net_bb_for_candidate or 0.0
         net_bb_b = stats_b.net_bb_for_candidate or 0.0

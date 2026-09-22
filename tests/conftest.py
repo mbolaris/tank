@@ -61,16 +61,24 @@ def seeded_rng():
 
 @pytest.fixture(autouse=True)
 def mock_data_dir(tmp_path):
-    """Keep persistence tests from writing into the real repo."""
+    """Keep persistence tests from writing into the real repo.
+
+    Covers the tank connections file too: without it, any test that deletes a
+    connected world would rewrite a developer's real ``data/connections.json``.
+    """
+    import backend.connection_persistence as cp
     import backend.world_persistence as wp
 
     original = wp.DATA_DIR
+    original_connections = cp.CONNECTIONS_FILE
     wp.DATA_DIR = tmp_path / "data" / "worlds"
     wp.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    cp.CONNECTIONS_FILE = tmp_path / "data" / "connections.json"
     try:
         yield wp.DATA_DIR
     finally:
         wp.DATA_DIR = original
+        cp.CONNECTIONS_FILE = original_connections
 
 
 @pytest.fixture

@@ -6,7 +6,11 @@ to/from disk, enabling connections to persist across server restarts.
 
 import json
 import logging
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
+
+from backend.atomic_json import write_json_atomic
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +40,7 @@ def save_connections(connection_manager) -> bool:
             "connections": [conn.to_dict() for conn in connections],
         }
 
-        # Write to file
-        with open(CONNECTIONS_FILE, "w") as f:
-            json.dump(data, f, indent=2)
+        write_json_atomic(CONNECTIONS_FILE, data)
 
         logger.info(f"Saved {len(connections)} connection(s) to {CONNECTIONS_FILE}")
         return True
@@ -48,14 +50,51 @@ def save_connections(connection_manager) -> bool:
         return False
 
 
-def load_connections(connection_manager) -> int:
+def prune_stale_connections(
+    connection_manager: Any,
+    live_world_ids: Iterable[str],
+    local_server_id: str | None = None,
+) -> int:
+    """Drop local connections whose source or destination world is gone.
+
+    Removal is written straight back to disk. Without that, a connection to a
+    deleted world is only forgotten in memory: the next start reloads it from
+    ``connections.json`` and the migration scheduler warns "world not found"
+    every couple of seconds, forever. Connections with a remote end are kept,
+    since this server cannot know which worlds another server hosts.
+
+    Returns:
+        Number of connections removed
+    """
+    if connection_manager is None:
+        return 0
+    removed = connection_manager.validate_connections(
+        list(live_world_ids), local_server_id=local_server_id
+    )
+    if not isinstance(removed, int) or removed <= 0:
+        return 0
+    logger.info(f"Pruned {removed} connection(s) to worlds that no longer exist")
+    save_connections(connection_manager)
+    return removed
+
+
+def load_connections(
+    connection_manager,
+    world_manager: Any = None,
+    local_server_id: str | None = None,
+) -> int:
     """Load connections from disk and restore to connection manager.
 
     Args:
         connection_manager: ConnectionManager instance
+        world_manager: When given, connections to worlds it does not hold are
+            pruned (and the file rewritten) right after loading. Pass it only
+            once saved worlds have been restored, or live links get pruned.
+        local_server_id: This server's id, so connections stamped with it
+            still count as local when pruning
 
     Returns:
-        Number of connections restored
+        Number of connections restored (after pruning)
     """
     try:
         if not CONNECTIONS_FILE.exists():
@@ -94,6 +133,12 @@ def load_connections(connection_manager) -> int:
                     f"Failed to restore connection {conn_data.get('id')}: {e}", exc_info=True
                 )
                 continue
+
+        if world_manager is not None:
+            live_world_ids = [instance.world_id for instance in world_manager]
+            restored_count -= prune_stale_connections(
+                connection_manager, live_world_ids, local_server_id
+            )
 
         logger.info(f"Restored {restored_count} connection(s) from {CONNECTIONS_FILE}")
         return restored_count

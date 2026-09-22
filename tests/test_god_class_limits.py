@@ -53,7 +53,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     # generic-participant team IDs; keep the reviewed ceiling explicit.
     "core/minigames/soccer/match.py": 549,
     "core/mixed_poker/interaction.py": 728,
-    "core/poker/evaluation/auto_evaluate_poker.py": 601,
+    "core/poker/evaluation/auto_evaluate_poker.py": 600,
     "core/poker/evaluation/comprehensive_benchmark.py": 601,
     "core/poker/evaluation/evolution_benchmark_tracker.py": 727,
     "core/poker/human_poker_game.py": 863,
