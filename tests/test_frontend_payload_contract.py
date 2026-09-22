@@ -94,7 +94,9 @@ def test_every_backend_dto_field_has_a_frontend_declaration() -> None:
     source = _type_source()
 
     contracts = {
-        "EntityData": _dataclass_keys(EntitySnapshot),
+        # genome_data_factory is a server-side deferral that to_full_dict()
+        # resolves into genome_data; it is never serialized.
+        "EntityData": _dataclass_keys(EntitySnapshot, {"genome_data_factory"}),
         "DeltaEntityUpdate": set(EntitySnapshot(1, "fish", 0, 0, 1, 1).to_delta_dict()),
         "StatsData": _dataclass_keys(StatsPayload, {"meta_stats"}),
         "PokerStatsData": _dataclass_keys(PokerStatsPayload),

@@ -39,28 +39,10 @@ def collect_entities(runner: SimulationRunner) -> list[EntitySnapshot]:
 
     # Prefer the builder's world-aware build() path so it can use the engine's
     # identity provider (canonical source for stable IDs).
-    snapshots = runner._entity_snapshot_builder.build(
+    return runner._entity_snapshot_builder.build(
         StepResult(snapshot=runner.world.get_current_snapshot()),
         runner.world,
     )
-
-    # OPTIMIZATION: Post-process snapshots to strip heavy fields not needed for WebSocket visualization
-    # This bypasses potential hot-reload issues with the snapshot builder itself
-    for s in snapshots:
-        gd = s.genome_data
-        if gd:
-            if "trait_meta" in gd:
-                del gd["trait_meta"]
-            if "poker_strategy" in gd:
-                del gd["poker_strategy"]
-            if (
-                "behavior" in gd
-                and isinstance(gd["behavior"], dict)
-                and "parameters" in gd["behavior"]
-            ):
-                del gd["behavior"]["parameters"]
-
-    return snapshots
 
 
 def collect_stats(
