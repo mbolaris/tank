@@ -296,6 +296,11 @@ distilled from an external code review (July 2026, 82/100): type-safety
 guardrails, frontend/backend contract drift, and product-facing reward
 semantics. Each item names its files and a step-by-step plan.
 
+Theme 13 (September 2026) makes performance a measured loop: benchmark
+wall-clock is the generation time of Layer 1 evolution, so a faster engine is a
+faster evolution loop. `tools/perf_check.py` gives any change a speedup number
+and a bit-identical trajectory verdict in one command.
+
 ---
 
 *Last updated: July 2026*

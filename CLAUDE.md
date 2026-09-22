@@ -46,6 +46,9 @@ pre-commit run --all-files
 python main.py                    # Backend on :8000
 cd frontend && npm run dev        # Frontend on :3000
 
+# Performance change: speedup + bit-identical trajectory verdict vs a base ref
+python tools/perf_check.py --base HEAD --repeats 2
+
 # Validate improvement against champion
 python tools/validate_improvement.py results.json champions/tank/survival_5k.json
 
