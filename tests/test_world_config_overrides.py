@@ -39,3 +39,10 @@ def test_flat_config_applies_num_schooling_fish() -> None:
 
     assert config.ecosystem.num_schooling_fish == 18
     assert config.ecosystem.initial_fish_count == 18
+
+
+def test_profile_phases_flag_reaches_the_engine() -> None:
+    """``main.py --profile-phases`` rides the flat config; it used to be dropped
+    here, so the engine never timed anything and the summary printed all zeros."""
+    assert SimulationConfig().apply_flat_config({"profile_phases": True}).profile_phases
+    assert not SimulationConfig().apply_flat_config({}).profile_phases
