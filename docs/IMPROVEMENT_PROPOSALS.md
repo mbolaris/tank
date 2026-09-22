@@ -45,6 +45,9 @@ it has drifted. See the closing rule at the bottom of this file.
   CI-gated benchmarks (see `docs/CROSS_PLATFORM_DIVERGENCE.md`), but 1.0's
   own CI-run-to-run instability (a separate, unresolved problem) is still the
   higher-priority open half.
+- **13.1** (added 2026-09-22) — the live server's broadcast stalls ~100 ms a
+  few times every 5 s. It is measurement-first, trajectory-neutral work that
+  users can see. **13.6** is the `S`-sized Layer 2 warm-up in the same area.
 
 **Note the shape of that list.** With **7.3**, **7.4**, and **7.6** all
 shipped, what remains here is one item blocked on a maintainer product
@@ -55,6 +58,9 @@ while and run the research campaign."* An agent arriving here looking for the
 next task should read that as the instruction it is, and go produce a
 documented sequence of attempted ecosystem improvements — **including the
 failures** — rather than searching this file for another refactor.
+(Theme 13 is the exception, added 2026-09-22. It is not a refactor queue: every item
+starts from a cost measured on a live server, and it stays open only while that cost
+does.)
 
 (**7.4** and **7.6**, the Playwright CI gate and the Node runtime pin, shipped
 in #911 on 2026-07-29.)
@@ -1643,6 +1649,141 @@ the soccer champion" is the headline figure for the transfer story. Score a
 shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 **module skill matrix** (which modules are good where). Sits beside
 `research/skill_history.jsonl` (Theme 11.5); never needs re-baselining.
+
+---
+
+## Theme 13 — Performance of the live server (2026-09-22)
+
+The engine-level profile ([PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md))
+measured the **headless** engine in July. That is not what a viewer sees. This theme comes
+from a live Windows web-server log (2026-09-22, master `336adbea`, one browser client,
+`max_population=100`, soccer on, auto-food rate 36). It shows costs the headless benchmark
+cannot see: the broadcast path, full-sync frames, payload size, and threads competing for
+the same interpreter.
+
+**Everything here is backend/serving work, so it is trajectory-neutral**, except where an
+item says otherwise. Prove that the usual way: before/after `--export-stats` on seeds 42/7/123
+must be identical. This theme is not a license to trade determinism for speed. P3/P4/P5
+sampling in the profile doc remain behavior changes.
+
+**What the log shows**, so nobody has to re-derive it:
+
+| Signal | Early (10–14 fish) | Steady (60–100 fish) | Budget |
+|---|---|---|---|
+| `update` (sim step) avg / max | 3.6–4.9 ms / 5.7–7.1 | 11–16 ms / 18–68 | 33 ms @ 30 FPS |
+| `snapshot` (entity collection) avg / max | 1.1–2.1 ms / 1.3–35 | 5–8 ms / **47–60 in every 5 s window** | — |
+| `stats` avg / max | 0.8–1.5 ms / 1–7 | 2.8–3.6 ms / 3.5–20 | — |
+| Broadcast payload | 33–43 KB | 46–60 KB typical; **314–402 KB** every ~30–60 s | — |
+| `SLOW` broadcast warnings | rare | ~3 per 5 s window, `get+send` ≈ 75–125 ms | 66 ms @ 15 Hz |
+
+FPS held at 30.0 throughout, so the simulation keeps up. The problems are hitches in what
+the viewer receives, and the cost trend as the population grows.
+
+### 13.1 Find the ~100 ms broadcast stall — `M` · ★★★ · Layer 2 (serving only)
+
+**The evidence points away from state building.** Each `SLOW` line splits a broadcast into
+`get`, `ser` and `send`. The sum clusters near 100 ms. When `get` is small, `send` is about
+100 ms (`get=9 send=102`, `get=16 send=103`, `get=25 send=103`). When `send` is small,
+`get` is about 100 ms (`get=101 send=1`, many times). The runner's own timers put the work
+inside `get` at roughly 10 ms (`stats` ~3 ms + `snapshot` ~6 ms). So a periodic ~100 ms
+stall lands in whichever `await` is in flight. Either the asyncio event loop is blocked, or
+it cannot get the GIL. At the 15 Hz target (66 ms interval), each stall costs one or two
+broadcasts, which shows up as a visible hitch in the tank's motion.
+
+**Candidate causes.** None has been confirmed.
+
+1. **GIL convoy.** The sim thread (`backend/runner/loop.py`) runs 11–16 ms of pure Python
+   per step at this population, and the event-loop thread needs the GIL back after every I/O
+   operation. Many small socket writes that each wait up to one switch interval (5 ms) would
+   add up to this kind of number.
+2. **`runner.lock` held for longer than the timed step.** Under the lock, `loop.py` also runs
+   `runner._sample_metrics_if_due()`: metrics history every 500 frames, the story and legend
+   samplers, and the pursuit-variant scan. None of these appears in the status line.
+   `get_state` (`backend/simulation_runner.py`) waits on this lock in an executor thread, and
+   that wait is reported as `get`.
+3. **Synchronous work on the event loop.** The migration scheduler checks every 2 s, and the
+   discovery heartbeat and auto-save also run there.
+
+**Plan.**
+1. Split `get` into *lock wait* and *build* inside `SimulationRunner.get_state`, and log both
+   in the `SLOW` line.
+2. Add an event-loop lag probe: a task that sleeps 10 ms and records the overshoot. Report
+   p50/max beside `update=…` in the status line.
+3. Time `_sample_metrics_if_due` and `_start_auto_evaluation_if_needed`, and add them to the
+   status line.
+4. Take `py-spy dump` / `py-spy record --native` on a live server during a burst of `SLOW`
+   warnings. This is how `7939e8eb` found the 78%-of-frame taxonomy scan.
+5. Fix the cause the data names. Do not guess.
+
+**Acceptance.** Every `SLOW` warning names its cause. After the fix, fewer than one
+broadcast per minute exceeds 66 ms at 80–100 fish on the same Windows machine.
+
+### 13.2 Full-sync frames cost ~50 ms of entity snapshot — `S` · ★★ · Layer 2
+
+At 60+ fish, `snapshot` averages 5–8 ms, yet its max is 47–60 ms in *every* 5 s status
+window. `StatePublisher` forces a full sync every 90 frames (`delta_sync_interval=90`,
+`backend/simulation_runner.py:141`), which is every 3 s, so every window contains at least
+one. That makes full-sync frames the likely spike. It is plausible but not confirmed.
+
+**Plan.** Tag the `snapshot` timer with full versus delta. If full frames are the spike,
+profile `stats_collector.collect_entities` on a full frame and cache the per-entity parts
+that never change (species, sprite, static `render_hint` fields) by entity id. The
+`stats` max spikes (14–20 ms, likely `include_distributions=True` on full frames) deserve
+the same check. The delta-dict cache in `state_publisher.py` shows the pattern to follow.
+
+### 13.3 Payload diet — `S` · ★★ · Layer 2
+
+Typical broadcasts are 46–60 KB at 60–100 fish. At 15 Hz that is ~0.8 MB/s per client. At
+most 15 KB separates the smallest payload from the largest, so delta frames may be buying
+little over full ones. Some frames are 6–8x larger: 402,477 / 335,031 / 314,042 / 99,917
+bytes. Nobody has yet recorded what is in them.
+
+**Plan.** Capture one payload of each class (delta, full sync, outlier). Attribute bytes to
+top-level keys. Then move rarely changing blocks (distributions, lineage, leaderboards,
+poker/benchmark results) to on-change or REST. The contract test
+(`tests/test_frontend_payload_contract.py`, 7.1) must keep passing. Acceptance: publish
+the per-key byte table in this entry, and cut steady-state delta size by at least 2x.
+
+### 13.4 Re-profile the engine at live-server settings — `M` · ★★ · Layer 2 to measure
+
+The sim step costs 4.5 ms at 10 fish and 11–16 ms at 70–100 fish, with a 68 ms worst
+frame. The July headless benchmark measured ~8.2 ms at 63 fish, but it predates soccer
+in the tank, the story and legend samplers, the live skill ladder, and the Cinematic
+Director's event feed, and it ran with a lower population cap.
+
+**Plan.** Run `scripts/benchmark_performance.py --profile` with the live config
+(`max_population=100`, soccer enabled, auto-food 36). Append a dated section to
+`PERFORMANCE_PROFILE_2026_07.md`. Re-rank the open P-items against the new numbers. Then
+take the cheapest trajectory-preserving win, which is probably **P3(a)** (skip
+poker-ineligible fish before the proximity query). Measuring is Layer 2. Any optimization
+that follows is a separate PR under the profile doc's validation protocol.
+
+### 13.5 Does the background poker benchmark slow the simulation? — `S` · ★ · Layer 2
+
+`EvolutionBenchmarkTracker` ran "quick benchmark for 54 fish … completed in 11.6s (3,192
+hands)" on a background thread. The status window that overlaps it has the log's worst
+`update` max, 68 ms. That is confounded: the population also hit its cap of 100 then.
+#957 fixed the *in-frame* ladder, and this is the other benchmark path.
+
+**Plan.** Log frame-time p95 and max with the tracker running and idle, at matched
+population. If the gap is material, run it in a `ProcessPoolExecutor`. It already clones
+strategies and preserves RNG, so isolation is not new work. Otherwise record "measured, not
+a cost" here and close it.
+
+### 13.6 Log hygiene: normal disconnects are not errors — `S` · ★ · Layer 2
+
+`backend/routers/websocket.py:_handle_websocket_for_adapter` logs `ERROR … Error sending
+initial state` with a full two-exception traceback whenever the client closes before the
+first full state arrives. In development this happens on **every page load**: React
+`StrictMode` (`frontend/src/main.tsx`) mounts, unmounts and remounts, so the first socket
+closes immediately. After the failed send, the handler also continues into its receive
+loop on a dead socket.
+
+**Plan.** Catch `WebSocketDisconnect` / `ClientDisconnected` around the initial send, log
+one INFO line, and return. Keep ERROR for real failures. Once 13.1 has attributed the
+`SLOW` warnings, fold them into a per-window count in the status line instead of one
+WARNING per broadcast. Today they are the most frequent line in the log, and that noise
+makes real problems easy to miss.
 
 ---
 
