@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 from backend.skill_evaluation_service import SkillEvaluationService
 from backend.skill_observatory import build_observatory_snapshot, evaluate_observatory_snapshot
 from backend.skill_observatory_scoring import compute_foraging_gym_summary
+from backend.skill_progress_service import SkillProgressService
 from core.skill import load_ladder_summaries
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,35 @@ def setup_router(
         functools.partial(build_observatory_snapshot, world_manager)
     )
     evaluation_service.set_evaluator(evaluate_observatory_snapshot)
+
+    # Foraging has no live snapshot stream of its own, so the progress service
+    # retains each completed observatory evaluation as one measurement.
+    progress_service = SkillProgressService(world_manager)
+    evaluation_service.set_result_observer(progress_service.record_foraging_result)
+
+    @router.get("/api/skill/progress")
+    @router.get("/api/world/{world_id}/skill/progress")
+    def get_skill_progress(world_id: str | None = None) -> JSONResponse:
+        """Say whether each evolving domain is progressing, might be, or has stalled."""
+        if world_manager is None:
+            return JSONResponse({"status": "no_data", "message": "World manager not available"})
+        worlds = world_manager.list_worlds()
+        if not worlds:
+            return JSONResponse({"status": "no_data", "message": "No active worlds available"})
+
+        resolved_world_id = world_id
+        if not resolved_world_id or resolved_world_id == "default":
+            resolved_world_id = (
+                getattr(world_manager, "default_world_id", None) or worlds[0].world_id
+            )
+
+        return JSONResponse(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "world_id": resolved_world_id,
+                "domains": [a.as_dict() for a in progress_service.assess(resolved_world_id)],
+            }
+        )
 
     @router.get("/api/skill/foraging-gym/observatory")
     def get_foraging_gym_observatory(world_id: str | None = Query(default=None)) -> JSONResponse:

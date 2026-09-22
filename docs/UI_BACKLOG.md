@@ -105,11 +105,97 @@ list would have rebuilt them.
   `camera.test.ts` proves `cameraForTarget` + `getCameraViewport` reproduces
   `getFollowViewport` — and `e2e/tank-camera.spec.ts` drives real wheel/drag
   input against a live backend.
-- [ ] **Turn goal zones into TankObjects, hidden by default.** The dashed
-  circular `GOAL` markers read as debug geometry next to the styled
-  reef/grotto/castle sprites. Render an actual object (arch/ring/hoop) and
-  only show the raw collision zone in Build Mode or when the ball is near —
-  same mechanics, a world object instead of a hitbox.
+- [x] **Turn goal zones into TankObjects, hidden by default.** Shipped. The
+  side view draws a coral arch and the top-down view a coral hoop, tinted by
+  which end they defend; the scoring circle is gone from the ordinary view and
+  comes back only in Build Mode or as the ball closes in, fading up with
+  proximity so it appears exactly when it is about to matter. No mechanics
+  changed — this is rendering only.
+
+  Two things the work turned up, neither of them cosmetic:
+
+  **Both goals were drawing in the same colour.** `EntityData.team` was
+  declared `'left' | 'right'`, a vocabulary the backend never sends: tank goals
+  carry the engine's own `"A"` / `"B"` (`core/worlds/tank/pack.py`). So the side
+  renderer's `team === 'left'` test was dead code and both ends took the same
+  blue branch — you could not tell which end was which. The type lied about the
+  wire, so TypeScript had no way to catch it. Side is now resolved by
+  `utils/goalZoneAppearance.ts::goalSide`, which trusts `render_hint.goal_id`
+  first (it names the side outright) and accepts every vocabulary in the tree.
+  Widening the type surfaced a second consequence the build caught: the soccer
+  arena narrows the same field into a player's side, so a goal's A/B pairing is
+  now explicitly dropped there rather than cast into a team colour.
+
+  **The scoring circle is not centred on the goal's box.** `Entity.pos` is the
+  rect's top-left (`core/entities/base.py` keeps `self.rect.topleft = self.pos`)
+  even though `GoalZone`'s docstring calls it a centre, and `check_goal`
+  measures `pos`-to-`pos`. The reveal draws that circle truthfully rather than a
+  tidier one. Moving it would change scoring and invalidate every champion, so
+  this reports it and leaves it alone.
+
+  Verified in a browser against a live backend, both view modes: clean by
+  default, revealed in Build Mode, aquarium canvas unchanged at 1044px.
+
+  **And they were invisible on every long-lived tank, for a reason that had
+  nothing to do with drawing.** Verifying in the browser turned up an empty
+  aquarium: a world restored from persistence came back with no ball and no goal
+  zones at all, while a freshly created one had all three. The backend said why
+  in a line nobody was reading:
+
+  ```
+  WARNING Failed to bootstrap transient elements: Unsafe call to add_entity
+          during phase UpdatePhase.ENTITY_ACT. Use request_spawn() instead.
+  ```
+
+  Restoration does not run in lockstep with the simulation loop, so whether a
+  restore lands mid-frame is a race — the same world restored 122 other entities
+  fine and then lost these three. `_bootstrap_transient_elements` caught the
+  refusal, logged it as a warning and moved on, and nothing retried, so the
+  objects stayed missing for the life of the world however many times the ⚽
+  toggle was flipped. `_bootstrap_static_elements` had the identical hazard and
+  is not even guarded: mid-frame it would have failed the whole restore rather
+  than losing one entity.
+
+  Fixed in `backend/restore_spawn.py::spawn_restored_entity`, which both
+  bootstraps now route through: immediate `add_entity`, falling back to
+  `request_spawn` only when the engine refuses. That order is load-bearing —
+  `_validate_restored_world` checks for the castle synchronously, so an
+  unconditionally deferred spawn reads as a missing castle and fails the
+  restore. Extracted to its own module rather than re-pinning
+  `world_persistence.py`'s god-file limit, which it would otherwise have pushed
+  32 lines past.
+
+- [x] **Show whether each skill domain is actually evolving.** Shipped as the
+  "Evolution progress" panel under the health readout: one verdict per domain
+  (foraging, poker, soccer) with the sentence it rests on.
+
+  The hard part was not the panel, it was making the verdict honest.
+  `skill_index` is `rungs_beaten / total_rungs * 100`, so on a live tank it
+  takes five values and adjacent samples jump the full range - a captured
+  poker series moved 100 -> 0 -> 50 between consecutive snapshots while the
+  population was not changing. A latest-versus-previous indicator would have
+  flipped state every few seconds. `core/research/skill_progress.py` instead
+  compares a recent window's mean against an earlier one and only calls it
+  progress when the move exceeds the standard error of the difference; that
+  real 35-sample series is pinned as a test and reads **stalled** (+4.4 over
+  107 generations against 9.4 of noise).
+
+  Two states beyond the three asked for, because without them the honest
+  answer would be a lie: `no_data` (an unmeasured domain is not stalled) and
+  `at_ceiling` (beating every rung is the opposite of stalled - the ladder's
+  own docstring says a reached ceiling means the ruler needs a taller rung).
+
+  Foraging had no live series at all - only ever "the latest observatory
+  result" - so `SkillEvaluationService` gained a result observer and
+  `backend/skill_progress_service.py` retains the series. Its score is
+  rescaled onto the ladder's 0-100 between the wandering floor and the oracle
+  ceiling, because the raw ratio would credit a fish that ignores food with
+  ~10% skill.
+
+  Known limits: the foraging series is in memory, so it restarts empty and
+  takes ~30 minutes of the 5-minute evaluation cadence to reach a verdict;
+  poker and soccer read the engine's bounded `SkillSnapshotStore`, so their
+  window is the last 50 samples.
 
 ## P2 — later
 

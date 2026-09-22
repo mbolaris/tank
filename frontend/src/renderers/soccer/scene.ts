@@ -45,6 +45,19 @@ function participantId(entity: EntityData, hint: SoccerRenderHint | undefined): 
     return (entity as EntityData & { participant_id?: string }).participant_id ?? hint?.participant_id;
 }
 
+/**
+ * A side for a soccer player, or undefined.
+ *
+ * `EntityData.team` is shared with tank goal zones, which carry the engine's
+ * own A/B pairing (see `utils/goalZoneAppearance.ts`). A goal's pairing is not a
+ * player's side, so it is dropped here rather than cast: falling through to
+ * `hint.team` or the participant record gives a real answer, while a cast would
+ * paint an "A" player in the left team's colours.
+ */
+function playerSide(team: string | undefined): 'left' | 'right' | undefined {
+    return team === 'left' || team === 'right' ? team : undefined;
+}
+
 export function soccerSceneFromFrame(frame: RenderFrame, transform: PitchTransform): SoccerScene {
     const state = soccerMatchSnapshot(frame.snapshot);
     const participants = new Map((state.participants ?? []).map((participant) => [participant.participant_id, participant]));
@@ -88,7 +101,7 @@ export function soccerSceneFromFrame(frame: RenderFrame, transform: PitchTransfo
             fieldVelX: entity.vel_x ?? hint?.velocity_x ?? 0,
             fieldVelY: entity.vel_y ?? hint?.velocity_y ?? 0,
             speed: fieldSpeed,
-            team: entity.team ?? hint?.team ?? participant?.side,
+            team: playerSide(entity.team) ?? hint?.team ?? participant?.side,
             jersey_number: entity.jersey_number ?? hint?.jersey_number ?? participant?.uniform_number,
             stamina: entity.stamina ?? hint?.stamina,
             facing: facing === undefined ? undefined : state.coord_space === 'canonical' ? -facing : facing,

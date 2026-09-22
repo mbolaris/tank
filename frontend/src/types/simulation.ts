@@ -142,8 +142,8 @@ export interface EntityData {
     // Crab-specific
     can_hunt?: boolean;  // True if crab can kill fish (not on cooldown)
 
-    // Soccer player-specific
-    team?: 'left' | 'right';
+    // Soccer players, plus goal zones with the engine's A/B pairing — for a goal's side use goalSide() in utils/goalZoneAppearance.ts, never a direct compare.
+    team?: 'left' | 'right' | 'A' | 'B';
     jersey_number?: number;
     stamina?: number;
     facing?: number;  // Angle in radians

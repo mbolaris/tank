@@ -4,6 +4,7 @@ import { EntityPositionInterpolator } from '../../rendering/entityPositionInterp
 import { Renderer as TankRenderer } from '../../utils/renderer';
 import { drawPursuitOverlay } from '../../utils/drawPursuitOverlay';
 import { drawTargetMemoryOverlay } from '../../utils/drawTargetMemoryOverlay';
+import { drawGoalZoneReveal } from '../../utils/renderSoccerObjects';
 import type { EntityData, SimulationUpdate } from '../../types/simulation';
 
 const PLANT_LAYER_FRAME_MS = 1000 / 15;
@@ -130,6 +131,15 @@ export class TankSideRenderer implements Renderer {
                 r.renderEntity(entity, elapsedTime, renderedEntities, showEffects, snapshot.frame);
                 this.drawSoccerEffect(ctx, entity);
             });
+            // The scoring circles ride above the arches but below the plant
+            // layer, so a revealed zone reads as water rather than as HUD.
+            const ball = renderedEntities.find((candidate) => candidate.type === 'ball');
+            renderedEntities
+                .filter((candidate) => candidate.type === 'goal_zone')
+                .forEach((goal) => {
+                    drawGoalZoneReveal(ctx, goal, ball, frame.options?.buildMode ?? false);
+                });
+
             if (plantLayer) {
                 // Plants remain present but intentionally subdued in the
                 // normal view so their color does not compete with fish.

@@ -47,6 +47,7 @@ class SkillEvaluationService:
         self._running = False
         self._in_flight: set[str] = set()
         self._storage_path = storage_path
+        self._result_observer: Callable[[str, dict[str, Any]], None] | None = None
         self._load_latest()
 
     def set_evaluator(self, evaluator: Callable[[Any], dict[str, Any]]) -> None:
@@ -75,6 +76,16 @@ class SkillEvaluationService:
         result = self._latest.get(world_id)
         return deepcopy(result) if result is not None else None
 
+    def set_result_observer(self, observer: Callable[[str, dict[str, Any]], None] | None) -> None:
+        """Register a callback notified of every completed result.
+
+        This service keeps only the *latest* result per world, which is all the
+        observatory panel needs but is not enough to say whether foraging is
+        improving. The observer is the seam where something that wants a series
+        can retain one, without this class growing a second responsibility.
+        """
+        self._result_observer = observer
+
     def store_result(self, world_id: str, result: dict[str, Any]) -> None:
         """Store a completed result, evicting the least-recently-updated world."""
         self._latest.pop(world_id, None)
@@ -82,6 +93,13 @@ class SkillEvaluationService:
         while len(self._latest) > self._max_results:
             self._latest.popitem(last=False)
         self._persist_latest()
+        if self._result_observer is not None:
+            # A misbehaving observer must not lose the stored result or stop
+            # the evaluation loop that called this.
+            try:
+                self._result_observer(world_id, deepcopy(result))
+            except Exception:  # pragma: no cover - defensive
+                logger.warning("Skill result observer failed", exc_info=True)
 
     async def refresh_world(self, world_id: str) -> dict[str, Any] | None:
         """Evaluate one world in a worker thread and store its completed result.

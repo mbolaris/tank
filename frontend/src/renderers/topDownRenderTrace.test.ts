@@ -22,11 +22,19 @@
  *     already empty at that point in every frame, as the trace itself shows.
  *
  * No coordinate, colour or gradient stop moved.
+ *
+ * One later delta was intended, and the snapshot was updated in the same commit
+ * that caused it: the goal zone stopped being a dashed circle captioned "GOAL"
+ * and became a coral hoop, with its scoring circle moved out to a conditional
+ * reveal. The whole diff is inside the goal-zone block — 12 ops out, 30 in, no
+ * other entity's drawing moved. It also corrected the palette: the fixture's
+ * goal is `team: 'left'`, which the old code compared against `'A'` and so drew
+ * in the opposite team's blue.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { createCanvasTrace } from './testing/canvasTrace';
+import { createCanvasTrace, type CanvasTrace } from './testing/canvasTrace';
 import { buildFixtureSnapshot, FIXTURE_NOW_MS, FIXTURE_SELECTED_ID } from './testing/topDownFixture';
 import { TankTopDownRenderer } from './tank/TankTopDownRenderer';
 import { PetriTopDownRenderer } from './petri/PetriTopDownRenderer';
@@ -34,6 +42,7 @@ import { drawMicrobe } from './avatar_renderer';
 import { ImageLoader } from '../utils/ImageLoader';
 import { clearAllPlantCaches } from '../utils/plant';
 import type { RenderFrame, RenderContext } from '../rendering/types';
+import { GOAL_PALETTES, type GoalSide } from '../utils/goalZoneAppearance';
 
 /** Minimal Path2D stand-in: the L-system plant renderer caches geometry in one. */
 class StubPath2D {
@@ -125,5 +134,128 @@ describe('top-down renderer draw traces', () => {
 
         expect(trace.ops.length).toBeGreaterThan(50);
         expect(trace.toString()).toMatchSnapshot();
+    });
+});
+
+/**
+ * The scoring zone is behaviour, not a golden image, so it is asserted directly
+ * rather than left to the trace snapshot above. The snapshot only ever proves
+ * the default: the fixture's ball sits 484px from the left goal, far outside
+ * the reveal range, so no zone is drawn and the aquarium stays clean.
+ */
+describe('top-down goal scoring zone reveal', () => {
+    beforeEach(() => {
+        vi.stubGlobal('Path2D', StubPath2D);
+        vi.spyOn(ImageLoader, 'getCachedImage').mockReturnValue(stubImage);
+        clearAllPlantCaches();
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    interface RevealedZone {
+        side: GoalSide;
+        radius: number;
+        alpha: number;
+    }
+
+    /**
+     * Pull the revealed zones out of a trace.
+     *
+     * Keyed on each palette's `zone` stroke colour, which nothing else in the
+     * tank view uses. Dash state is not a usable marker: `save`/`restore` scope
+     * it, and the selection ring is dashed too.
+     */
+    function revealedZones(trace: CanvasTrace): RevealedZone[] {
+        const byColour = new Map<string, GoalSide>(
+            (Object.keys(GOAL_PALETTES) as GoalSide[]).map((side) => [
+                `strokeStyle = "${GOAL_PALETTES[side].zone}"`,
+                side,
+            ])
+        );
+        const zones: RevealedZone[] = [];
+        let alpha = 1;
+        let pending: GoalSide | null = null;
+        for (const op of trace.ops) {
+            if (op.startsWith('globalAlpha = ')) {
+                alpha = Number(op.replace('globalAlpha = ', ''));
+                continue;
+            }
+            const side = byColour.get(op);
+            if (side) {
+                pending = side;
+                continue;
+            }
+            if (pending && op.startsWith('arc(')) {
+                const radius = Number(op.slice(4, -1).split(',')[2]);
+                zones.push({ side: pending, radius, alpha });
+                pending = null;
+            }
+        }
+        return zones;
+    }
+
+    function traceTank(frame: RenderFrame): CanvasTrace {
+        const trace = createCanvasTrace();
+        new TankTopDownRenderer().render(frame, {
+            canvas: trace.canvas,
+            ctx: trace.ctx,
+            dpr: 1,
+            nowMs: FIXTURE_NOW_MS,
+        });
+        return trace;
+    }
+
+    /** Move the fixture's ball, leaving everything else untouched. */
+    function frameWithBallAt(x: number, y: number, buildMode = false): RenderFrame {
+        const base = buildFixtureSnapshot();
+        const entities = base.snapshot.entities.map((entity) =>
+            entity.type === 'ball' ? { ...entity, x, y } : entity
+        );
+        return {
+            worldType: 'tank',
+            viewMode: 'topdown',
+            snapshot: { snapshot: { ...base.snapshot, entities } } as unknown as RenderFrame['snapshot'],
+            options: { showEffects: true, selectedEntityId: FIXTURE_SELECTED_ID, buildMode },
+        };
+    }
+
+    it('draws no scoring zone while the ball is away from both goals', () => {
+        expect(revealedZones(traceTank(makeFrame()))).toEqual([]);
+    });
+
+    it('reveals the zone in Build Mode even with the ball away', () => {
+        // Build Mode is where a researcher places objects and needs to see the
+        // geometry they are placing them against.
+        const zones = revealedZones(traceTank(frameWithBallAt(544, 306, true)));
+        expect(zones.length).toBe(1);
+        expect(zones[0].alpha).toBe(1);
+    });
+
+    it('reveals the zone the ball is closing on, at the radius that scores', () => {
+        // The fixture's goal sits at (60, 306) with radius 30 and the ball is
+        // 20 wide, so GoalZone.check_goal scores inside 40 and the fade begins
+        // at 120.
+        const zones = revealedZones(traceTank(frameWithBallAt(150, 306)));
+        expect(zones.length).toBe(1);
+        expect(zones[0].radius).toBe(40);
+        expect(zones[0].side).toBe('left');
+    });
+
+    it('fades the reveal in as the ball approaches', () => {
+        const approaching = revealedZones(traceTank(frameWithBallAt(165, 306)));
+        const scoring = revealedZones(traceTank(frameWithBallAt(95, 306)));
+        expect(approaching[0].alpha).toBeGreaterThan(0);
+        expect(approaching[0].alpha).toBeLessThan(1);
+        expect(scoring[0].alpha).toBe(1);
+    });
+
+    it('tints the zone with the same palette as the hoop that owns it', () => {
+        // A researcher reads which end is which from colour, so the zone and
+        // the object must never disagree.
+        const zones = revealedZones(traceTank(frameWithBallAt(150, 306)));
+        expect(GOAL_PALETTES[zones[0].side].zone).toBe(GOAL_PALETTES.left.zone);
     });
 });
