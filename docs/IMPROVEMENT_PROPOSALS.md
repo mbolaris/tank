@@ -1877,11 +1877,14 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
    skips exactly the cases the reducer ignores.
 
 *Open, in order of leverage:*
-- **`start.py` serves the Vite dev server.** Anyone using the one-command
-  launcher watches the dev build: React costs ~10x production per message
-  even after the fixes above, and `jsxDEV` alone is ~90 ms/s of main thread.
-  A `--prod` (or default-production, `--dev` for hot reload) launch mode is
-  a maintainer workflow decision, not an optimization to slip in.
+- **`start.py --prod` — SHIPPED (2026-09-23).** The launcher serves the Vite
+  dev server, where React costs ~10x production per message even after the
+  fixes above (`jsxDEV` alone ~90 ms/s of main thread). The maintainer chose
+  an opt-in flag over changing the default: `--prod` runs `npm run build`,
+  then `vite preview` on the same port 3000 with the same `/api` proxy
+  (inherited from `server`), so everything downstream is unchanged. Verified
+  by launching it and driving the page: live connection in 0.4s, no page
+  errors.
 - **Remaining per-message React work in dev (~10 ms):** `ControlPanel`,
   `EvolutionSidebar`, `ModeSwitch`, `CanvasOverlays` get inline callbacks from
   `TankView`, so `memo` needs `useCallback` there first.
@@ -1892,6 +1895,13 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
 - `e2e/tank-director.spec.ts` "does not replay the backfilled story-event
   history" fails ~1 run in 4 locally on master and on this change alike
   (CI retries twice). Worth a look on its own.
+- **Local mypy misses type errors in `benchmarks/`.** CI's `mypy core/
+  backend/ tools/` reports errors in `benchmarks/` modules it reaches by
+  import (`tools/run_selection_response_assay.py` imports
+  `selection_response_10k`), but the same command here did not, so #961
+  merged with a red mypy job. Checking `benchmarks/` explicitly would close
+  the gap, but it currently has 19 pre-existing errors across 3 files
+  (`python -m mypy benchmarks/`, 2026-09-23); fix those first.
 
 ---
 
