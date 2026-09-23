@@ -1773,14 +1773,39 @@ budgets catch wall-clock regressions coarsely, counts catch them precisely.
 
 ### 13.8 The remaining 2026-07 candidates, re-ranked
 Still open from [PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md),
-re-measured on the default tank 2026-09-22: **P3** poker proximity graph
-rebuilt every frame (~5.6% of frame; the eligibility early-out is the
-trajectory-safe variant), **P6** collision-candidate sorting (~6% of the
+re-measured 2026-09-22: **P6** collision-candidate sorting (~6% of the
 `survival_5k` frame including real eating work), **P7** double spatial-grid
 maintenance (~1%). Each is now a `tools/perf_check.py` away from a provable
-verdict. Also: `benchmarks/tank/selection_response_10k.py` steps with plain
+verdict, and a `tools/cost_counters.py` re-pin away from being locked in.
+Also: `benchmarks/tank/selection_response_10k.py` steps with plain
 `world.step()` and so pays for full metrics every frame (~11% of frame on that
 path) - check whether its sampler needs them before switching it to fast step.
+
+**P3 — SHIPPED (2026-09-23): poker proximity builds its graph among ready fish
+first.** Measured on the default tank: only **~1.9 of ~65 fish are
+poker-ready** on an average frame (alive, off cooldown, funded), and 46% of
+frames have fewer than two - yet the system ran a spatial query for every fish,
+every frame, to build an all-fish graph. It now builds the ready-only graph
+(same `_build_proximity_graph` arithmetic, same sorted contact order); no
+candidate group -> no graph at all; exactly one -> play it directly. With
+**two or more** candidates it falls back to the all-fish graph, and that
+fallback is load-bearing, not caution: a non-ready fish can bridge two ready
+groups, and the all-fish component order decides which group gets the frame's
+single game. Removing the fallback diverges seed 42 by frame 250 (60 fish) and
+changes the 4,000-frame game count 1,257 -> 1,290.
+- *Identical:* full-state digests at 80 checkpoints over 4,000 default-tank
+  frames on seeds 42 and 7 (1,257 and 1,003 games) match the old code, and
+  `tests/test_poker_proximity_ready_first.py` pins it against a verbatim copy
+  of the old update (it kills the no-fallback mutant: 33 vs 29 games).
+- *Faster:* default tank 9.83-9.98 -> 9.21-9.51 ms/frame across three
+  interleaved A/B pairs (~5%); `default_tank.calls_per_frame` re-pinned
+  12,778.2 -> 12,346.7.
+- *Not on the benchmark path:* the 2026-07 profile said poker runs in the
+  benchmarks too. It does not - in the `survival_5k` config
+  `poker_system.enabled` is False (0 games in 2,000 frames) - so this speeds
+  the live tank, not benchmark runtime.
+- The debug counter `groups_detected` now counts *ready* groups and is
+  renamed `ready_groups_detected` (no readers outside the system).
 
 ### 13.9 Frontend frame time is unmeasured — `M` · ★★
 Every number above is backend. Nobody has measured what the browser spends per

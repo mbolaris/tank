@@ -43,6 +43,27 @@ import operator
 _fish_sort_key = operator.attrgetter("fish_id")
 
 
+def _count_groups(fish_list: list["Fish"], contacts: dict["Fish", list["Fish"]]) -> int:
+    """Connected components of two or more fish in a proximity graph."""
+    seen: set[Fish] = set()
+    groups = 0
+    for fish in fish_list:
+        if fish in seen or not contacts.get(fish):
+            continue
+        stack = [fish]
+        size = 0
+        while stack:
+            current = stack.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            size += 1
+            stack.extend(contacts.get(current, ()))
+        if size >= 2:
+            groups += 1
+    return groups
+
+
 @runs_in_phase(UpdatePhase.INTERACTION)
 class PokerProximitySystem(BaseSystem):
     """System for detecting fish groups and triggering poker games.
@@ -87,18 +108,37 @@ class PokerProximitySystem(BaseSystem):
         if len(fish_list) < 2:
             return SystemResult.empty()
 
-        # Build proximity graph
-        fish_poker_contacts = self._build_proximity_graph(fish_list)
+        # Only ready fish (alive, rested, funded) can end up in a game, and on a
+        # typical frame that is ~2 of ~65 (measured on the default tank,
+        # 2026-09-23). Build the graph among ready fish first: it yields exactly
+        # the ready-to-ready contacts, in the same order, that the full graph
+        # would, because readiness is a per-fish predicate and both graphs come
+        # from the same _build_proximity_graph arithmetic.
+        ready = cast("list[Fish]", get_ready_players(fish_list))
+        ready_contacts = self._build_proximity_graph(ready) if len(ready) >= 2 else {}
+        candidate_groups = _count_groups(ready, ready_contacts)
+        self._frame_groups = candidate_groups
+        self._groups_detected += candidate_groups
 
-        # Process groups and trigger games
-        games_triggered = self._process_poker_groups(fish_list, fish_poker_contacts)
+        if candidate_groups == 0:
+            games_triggered = 0
+        elif candidate_groups == 1:
+            # One candidate group: processing order cannot matter.
+            games_triggered = self._process_poker_groups(ready, ready_contacts)
+        else:
+            # Several candidates compete for the one game a frame allows, and the
+            # historical winner is decided by the order of the *all-fish*
+            # connected components (a non-ready fish can bridge two ready
+            # groups). Keep that order exactly by taking the full-graph path.
+            fish_poker_contacts = self._build_proximity_graph(fish_list)
+            games_triggered = self._process_poker_groups(fish_list, fish_poker_contacts)
 
         self._frame_games = games_triggered
         self._games_triggered += games_triggered
 
         result = SystemResult(
             details={
-                "groups_detected": self._frame_groups,
+                "ready_groups_detected": self._frame_groups,
                 "games_triggered": games_triggered,
             }
         )
@@ -153,9 +193,14 @@ class PokerProximitySystem(BaseSystem):
                     continue
                 if other.is_dead():
                     continue
+                # Only fish in fish_list are graph nodes (the ready-only graph
+                # passes a subset; the spatial query returns every nearby fish).
+                other_center = centers.get(other)
+                if other_center is None:
+                    continue
 
                 # Calculate center-to-center distance squared
-                o_cx, o_cy = centers[other]
+                o_cx, o_cy = other_center
                 dx = fish_cx - o_cx
                 dy = fish_cy - o_cy
                 dist_sq = dx * dx + dy * dy
@@ -217,9 +262,6 @@ class PokerProximitySystem(BaseSystem):
 
             # Process group if large enough
             if len(group) >= 2:
-                self._frame_groups += 1
-                self._groups_detected += 1
-
                 # Filter to ready players
                 ready_fish = cast(list[Fish], get_ready_players(group))
                 if len(ready_fish) < 2:
@@ -292,6 +334,6 @@ class PokerProximitySystem(BaseSystem):
         """Return poker proximity statistics for debugging."""
         return {
             **super().get_debug_info(),
-            "total_groups_detected": self._groups_detected,
+            "total_ready_groups_detected": self._groups_detected,
             "total_games_triggered": self._games_triggered,
         }

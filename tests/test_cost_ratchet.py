@@ -31,7 +31,8 @@ from tools.cost_counters import _repo_relative, measure_costs
 COST_PINS: dict[str, float] = {
     "benchmark_tank.calls_per_frame": 15607.2,
     "benchmark_tank.spatial_calls_per_frame": 1035.2,
-    "default_tank.calls_per_frame": 12778.2,
+    # 12778.2 -> 12346.7: poker proximity builds its graph among ready fish first.
+    "default_tank.calls_per_frame": 12346.7,
     "broadcast.calls_per_delta": 1300.1,
     "broadcast.genome_serializations_per_delta": 0.1,
     "broadcast.bytes_per_delta": 33510.3,
