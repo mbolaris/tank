@@ -33,9 +33,10 @@ COST_PINS: dict[str, float] = {
     "benchmark_tank.spatial_calls_per_frame": 1035.2,
     # 12778.2 -> 12346.7: poker proximity builds its graph among ready fish first.
     "default_tank.calls_per_frame": 12346.7,
-    "broadcast.calls_per_delta": 1300.1,
+    # 1300.1 -> 1171.0 and 33510.3 -> 20960.0: deltas carry stats at 6 Hz, not 15.
+    "broadcast.calls_per_delta": 1171.0,
     "broadcast.genome_serializations_per_delta": 0.1,
-    "broadcast.bytes_per_delta": 33510.3,
+    "broadcast.bytes_per_delta": 20960.0,
     "broadcast.bytes_per_full_sync": 90122.0,
 }
 

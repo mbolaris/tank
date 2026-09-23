@@ -39,8 +39,8 @@ it has drifted. See the closing rule at the bottom of this file.
 
 - **Theme 13 (performance, 2026-09-22)** — the newest open queue, and the one
   that speeds up every other item's loop. **13.4** (the cost ratchet) has
-  shipped, so every win below now gets locked in by lowering a pin; **13.5**, **13.6**, **13.7** and each
-  **13.8** candidate are `S`-sized and provable with one
+  shipped, so every win below now gets locked in by lowering a pin; **13.5**,
+  **13.7** and the open **13.8** candidates are `S`-sized and provable with one
   `python tools/perf_check.py` run. This partly supersedes the "no pick-up-and-go
   infrastructure work" note below: those items are measured, small, and
   behavior-preserving by construction.
@@ -1757,12 +1757,23 @@ per frame) would be both O(1) and *more* accurate than today's sequential sum.
 Treat as a reporting change: note it in the PR, and check `--export-stats`
 consumers.
 
-### 13.6 Stats at 15 Hz is more than anyone can read — `S` · ★★
-Every delta frame recomputes and ships the full stats block (`get_stats` is
-~45% of the post-13.1 build). Numbers on a panel changing 15 times a second are
-not information. Send stats every N frames (or when a sample lands) and have
-the frontend keep the last block when a delta omits it. Needs a small frontend
-change and a contract-test update (7.1); behavior-neutral for the sim.
+### 13.6 Stats at 15 Hz is more than anyone can read — `S` · ★★ — SHIPPED (2026-09-23)
+Every delta frame recomputed and shipped the full stats block (~45% of a
+post-13.1 build). `StatePublisher.delta_stats_interval` (5 frames: 6 Hz at 30
+FPS) now attaches stats to a delta only once the interval has passed; full
+syncs always carry them. The frontend already kept its last block when a delta
+omitted `stats` (`deltaStats ?? currentSnapshot.stats` in `applyDelta`) - it
+now also advances that block's `frame`, so the header's frame counter still
+ticks on every broadcast. Metrics-history sampling is unaffected: the sim loop
+drives it independently of broadcasts.
+- *Measured* (interleaved A/B vs HEAD, three pairs, 300 broadcasts each):
+  `get_state` mean 2.77-2.96 -> 1.96-2.01 ms (-31%), median 3.01-3.12 ->
+  1.65-1.70 ms (-45%); p95 unchanged, as it should be - those are the frames
+  that still carry stats.
+- *Ratchet:* `broadcast.bytes_per_delta` 33,510.3 -> 20,960.0 (-37%),
+  `broadcast.calls_per_delta` 1,300.1 -> 1,171.0, both re-pinned.
+- Pinned by `tests/test_delta_stats_cadence.py` and a vitest case in
+  `frontend/src/hooks/useWebSocket.test.ts`.
 
 ### 13.7 Benchmark runtime budgets have drifted — `S` · ★★
 `survival_5k` declares `EXPECTED_RUNTIME_SECONDS = 45` and ran 54-62s here.

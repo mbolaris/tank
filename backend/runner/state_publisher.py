@@ -19,10 +19,17 @@ class StatePublisher:
         perf_tracker: PerfTracker,
         websocket_update_interval: int = 1,
         delta_sync_interval: int = 90,
+        delta_stats_interval: int = 5,
     ):
         self.perf_tracker = perf_tracker
         self.websocket_update_interval = websocket_update_interval
         self.delta_sync_interval = delta_sync_interval
+        # Delta frames carry the stats block at most every this many frames
+        # (6 Hz at 30 FPS); a delta without one tells the client to keep its
+        # last block. Recomputing and resending every figure 15 times a second
+        # was ~45% of building a delta, for numbers no one can read that fast.
+        self.delta_stats_interval = delta_stats_interval
+        self._last_stats_frame: int | None = None
 
         # Cache state
         self._cached_state: FullStatePayload | DeltaStatePayload | None = None
@@ -54,6 +61,7 @@ class StatePublisher:
         self._cached_state_frame = None
         self._frames_since_update = 0
         self._last_full_frame = None
+        self._last_stats_frame = None
         self._last_entities.clear()
         self._last_delta_dicts.clear()
         self._reported_duplicate_ids.clear()
@@ -127,10 +135,17 @@ class StatePublisher:
             if hasattr(runner.world.world.engine, "elapsed_time"):
                 elapsed_time = runner.world.world.engine.elapsed_time
 
-        # Stats
-        self.perf_tracker.start("stats")
-        stats = runner._collect_stats(current_frame, include_distributions=is_full_update)
-        self.perf_tracker.stop("stats")
+        # Stats: always on full syncs, and on deltas once the interval elapses.
+        stats = None
+        if (
+            is_full_update
+            or self._last_stats_frame is None
+            or (current_frame - self._last_stats_frame) >= self.delta_stats_interval
+        ):
+            self.perf_tracker.start("stats")
+            stats = runner._collect_stats(current_frame, include_distributions=is_full_update)
+            self.perf_tracker.stop("stats")
+            self._last_stats_frame = current_frame
 
         # Entities
         self.perf_tracker.start("snapshot")
