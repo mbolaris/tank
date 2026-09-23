@@ -30,10 +30,11 @@ from tools.cost_counters import _repo_relative, measure_costs
 # Measured 2026-09-23 (seed 42; see tools/cost_counters.py for each scenario).
 COST_PINS: dict[str, float] = {
     # 15607.2 -> 15315.8 and 12346.7 -> 12094.6: one identity lookup per energy delta.
-    "benchmark_tank.calls_per_frame": 15315.8,
+    # 15315.8 -> 15088.4 and 12094.6 -> 11887.5: per-genome diversity profile cache.
+    "benchmark_tank.calls_per_frame": 15088.4,
     "benchmark_tank.spatial_calls_per_frame": 1035.2,
     # 12778.2 -> 12346.7: poker proximity builds its graph among ready fish first.
-    "default_tank.calls_per_frame": 12094.6,
+    "default_tank.calls_per_frame": 11887.5,
     # 1300.1 -> 1171.0 and 33510.3 -> 20960.0: deltas carry stats at 6 Hz, not 15.
     "broadcast.calls_per_delta": 1171.0,
     "broadcast.genome_serializations_per_delta": 0.1,

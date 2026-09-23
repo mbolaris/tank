@@ -1833,15 +1833,26 @@ changes the 4,000-frame game count 1,257 -> 1,290.
   twice per energy delta (`type_name()` then `stable_id()`, each a full
   `get_identity()`); now once. Default-tank digests unchanged;
   `*.calls_per_frame` -1.9% / -2.0%, re-pinned.
-- **Open, `S`:** `GeneticDiversityTracker.update` re-reads every fish's genome
-  traits each frame (~3% of the default-tank frame). Genomes are immutable
-  after creation, so a per-genome cache of the extracted values is exact -
-  but read `fish.species` live, since taxonomy can reclassify a fish. Do not
-  sample it every N frames instead: reproduction reads the diversity score
-  every frame, so that is a behavior change.
-- **Open, measure first:** the soccer league tick is ~5% of the default-tank
-  frame (1,500-frame cProfile, 2026-09-23); find how much of that is live match
-  simulation versus bookkeeping before touching it.
+- **SHIPPED (2026-09-23): per-genome diversity profile cache.**
+  `GeneticDiversityTracker.update` re-read every fish's genome traits each
+  frame, including the uncached `vision_range`. The values are now extracted
+  once per genome (`Genome._diversity_profile_cache`, cleared by
+  `invalidate_caches()` like the genome's other caches, which rest on the same
+  "immutable after creation" assumption); `fish.species` is still read live.
+  `tools/perf_check.py --base origin/master`: `survival_5k` and
+  `ecosystem_health_10k` trajectories IDENTICAL, `survival_5k` runtime -2.6%
+  (52.43 -> 51.04s, best of two per side); default-tank digests unchanged on
+  seeds 42 and 7; ratchet re-pinned (`*.calls_per_frame` -1.5% / -1.7%).
+  `tests/test_genetic_diversity_profile_cache.py` checks every live fish's
+  cached profile against a fresh extraction after 600 frames of births,
+  deaths and poker.
+- **Measured (2026-09-23): the soccer league tick is mostly real work.** It is
+  ~5.8% of the default-tank frame (3.01s of 51.5s over 1,500 cProfiled
+  frames), and `match.step` - policies, pursuit vectors and physics for six
+  players every cycle - is 2.44s of that. The avoidable part is small:
+  `provider.get_teams` rescans every fish's eligibility each frame (0.54s,
+  ~1%) and `match.get_state` runs twice per frame (0.35s). Low leverage; only
+  worth doing if the league grows.
 
 ### 13.9 Frontend frame time — `M` · ★★ — MEASURED (2026-09-23), first fixes SHIPPED
 `frontend/scripts/frame-probe.mjs` (`npm run probe:frames`) opens a fresh

@@ -70,6 +70,10 @@ class Genome:
     _metabolism_rate_cache: float | None = field(default=None, repr=False, compare=False)
     # Precomputed trait values for genetic_distance (see core/genetics/diversity.py)
     _distance_profile_cache: Any = field(default=None, repr=False, compare=False)
+    # Per-genome inputs to the per-frame diversity stats (core/genetic_diversity_tracker.py)
+    _diversity_profile_cache: tuple[object, ...] | None = field(
+        default=None, repr=False, compare=False
+    )
 
     @property
     def speed_modifier(self) -> float:
@@ -101,6 +105,7 @@ class Genome:
         object.__setattr__(self, "_speed_modifier_cache", None)
         object.__setattr__(self, "_metabolism_rate_cache", None)
         object.__setattr__(self, "_distance_profile_cache", None)
+        object.__setattr__(self, "_diversity_profile_cache", None)
 
     def to_dict(
         self,

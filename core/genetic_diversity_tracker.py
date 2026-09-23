@@ -6,13 +6,62 @@ EcosystemManager. Extracted from core/ecosystem.py; EcosystemManager keeps
 thin delegating facades.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from core.ecosystem_stats import GeneticDiversityStats
 from core.statistics_utils import population_variance
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.genetics.genome import Genome
+
+
+BEHAVIORAL_TRAIT_NAMES = ("prediction_skill", "pursuit_aggression", "hunting_stamina")
+
+# (behavior_id, color_hue, speed_modifier, size_modifier, vision_range,
+#  one value per BEHAVIORAL_TRAIT_NAMES entry, None where the trait is absent)
+DiversityProfile = tuple["str | None", float, float, float, float, "tuple[float | None, ...]"]
+
+
+def _diversity_profile(genome: "Genome") -> DiversityProfile:
+    """The per-genome values GeneticDiversityTracker.update reads every frame.
+
+    Genomes do not change after creation (the same assumption the genome's
+    speed/metabolism caches and genetic_distance's profile cache rest on), so
+    the values are extracted once per genome instead of once per fish per
+    frame; Genome.invalidate_caches() clears it with the others.
+    """
+    cached = genome._diversity_profile_cache
+    if cached is not None:
+        return cast(DiversityProfile, cached)
+
+    composable = genome.behavioral.behavior
+    # Distinct behavior_ids are counted directly. The old ``hash(behavior_id) %
+    # 1000`` was process-randomized (PYTHONHASHSEED) AND collision-prone, making
+    # unique_algorithms - and the ecosystem_health score it feeds -
+    # non-reproducible. See ADR-014.
+    behavior_id = (
+        composable.value.behavior_id
+        if composable is not None and composable.value is not None
+        else None
+    )
+    behavioral: list[float | None] = []
+    for trait_name in BEHAVIORAL_TRAIT_NAMES:
+        trait = getattr(genome.behavioral, trait_name, None)
+        if trait is not None and hasattr(trait, "value"):
+            behavioral.append(float(trait.value))
+        else:
+            behavioral.append(None)
+    profile: DiversityProfile = (
+        behavior_id,
+        genome.physical.color_hue.value,
+        genome.speed_modifier,
+        genome.physical.size_modifier.value,
+        genome.vision_range,
+        tuple(behavioral),
+    )
+    object.__setattr__(genome, "_diversity_profile_cache", profile)
+    return profile
 
 
 class GeneticDiversityTracker:
@@ -39,34 +88,23 @@ class GeneticDiversityTracker:
         # convergence trap). Collected in the same pass as the fields above -
         # per-fish values and their order are unchanged, so variances are
         # identical to computing them in separate passes.
-        behavioral_trait_names = ("prediction_skill", "pursuit_aggression", "hunting_stamina")
         behavioral_trait_values: dict[str, list[float]] = {
-            name: [] for name in behavioral_trait_names
+            name: [] for name in BEHAVIORAL_TRAIT_NAMES
         }
 
         for fish in fish_list:
-            genome = fish.genome
-
-            composable = genome.behavioral.behavior
-            if composable is not None and composable.value is not None:
-                # Count distinct behavior_ids directly. The old
-                # ``hash(behavior_id) % 1000`` was process-randomized (PYTHONHASHSEED)
-                # AND collision-prone, making unique_algorithms - and the
-                # ecosystem_health benchmark score it feeds - non-reproducible. See
-                # ADR-014.
-                behavior_id = composable.value.behavior_id
+            behavior_id, hue, speed, size, vision, behavioral = _diversity_profile(fish.genome)
+            if behavior_id is not None:
                 algorithms.add(behavior_id)
-
+            # Species is read live: taxonomy can reclassify a fish, its genome cannot change.
             species.add(fish.species)
-            color_hues.append(genome.physical.color_hue.value)
-            speed_modifiers.append(genome.speed_modifier)
-            size_modifiers.append(genome.physical.size_modifier.value)
-            vision_ranges.append(genome.vision_range)
-
-            for trait_name in behavioral_trait_names:
-                trait = getattr(genome.behavioral, trait_name, None)
-                if trait is not None and hasattr(trait, "value"):
-                    behavioral_trait_values[trait_name].append(float(trait.value))
+            color_hues.append(hue)
+            speed_modifiers.append(speed)
+            size_modifiers.append(size)
+            vision_ranges.append(vision)
+            for trait_name, value in zip(BEHAVIORAL_TRAIT_NAMES, behavioral, strict=True):
+                if value is not None:
+                    behavioral_trait_values[trait_name].append(value)
 
         n_fish = len(fish_list)
 
