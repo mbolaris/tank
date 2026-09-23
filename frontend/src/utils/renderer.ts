@@ -29,6 +29,7 @@ import {
     drawPokerStatus,
     drawShadow,
 } from './renderer_effects';
+import { drawFoodHalo } from './renderer_food_halo';
 import { SpriteTinter, drawImage, getAnimationFrame } from './renderer_sprites';
 import { drawSVGFishBody, drawSVGFishFront } from './renderer_svg_fish';
 import { EntityFacingTracker } from './renderer_facing';
@@ -383,11 +384,11 @@ export class Renderer {
         const offsetX = (width - scaledWidth) / 2;
         const offsetY = (height - scaledHeight) / 2;
 
-        // Draw subtle shadow
-        drawShadow(this.ctx, x + width / 2, y + height, scaledWidth * 0.6, scaledHeight * 0.2);
-
         // Live food gets special visual treatment
         if (isLiveFood) {
+            // Subtle shadow
+            drawShadow(this.ctx, x + width / 2, y + height, scaledWidth * 0.6, scaledHeight * 0.2);
+
             // Pulsing animation for live food
             const pulse = Math.sin(elapsedTime * 0.005) * 0.3 + 0.7;
             const cx = x + width / 2;
@@ -435,24 +436,8 @@ export class Renderer {
             this.ctx.fill();
             this.ctx.restore();
         } else {
-            // Normal food gets subtle glow
-            this.ctx.save();
-            this.ctx.globalAlpha = 0.2;
-            const gradient = this.ctx.createRadialGradient(
-                x + width / 2,
-                y + height / 2,
-                0,
-                x + width / 2,
-                y + height / 2,
-                scaledWidth * 0.6
-            );
-            gradient.addColorStop(0, '#ffeb3b');
-            gradient.addColorStop(1, 'rgba(255, 235, 59, 0)');
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.arc(x + width / 2, y + height / 2, scaledWidth * 0.6, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.restore();
+            // Shadow + subtle glow, stamped from a per-size sprite
+            drawFoodHalo(this.ctx, x, y, width, height, scaledWidth, scaledHeight);
         }
 
         // Food images don't flip
