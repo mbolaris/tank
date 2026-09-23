@@ -1914,7 +1914,9 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
 - `e2e/tank-director.spec.ts` "does not replay the backfilled story-event
   history" fails ~1 run in 4 locally on master and on this change alike
   (CI retries twice). Worth a look on its own.
-- **`champions/tank/survival_5k.json` has been stale since 4b55bca**
+- **SHIPPED (2026-09-23): `champions/tank/survival_5k.json` re-baselined** to
+  CI's run 35898122022 (master @ 3226dff): mean 687.11 -> 843.14 (+22.7%),
+  every seed up. Was: **stale since 4b55bca**
   (`_draw_on_reserves`, a real behavior change): nightly `verify-champions`
   expects 702.5775136245999 on seed 42 and CI produces 818.4348777775728 -
   the same value every local run in this theme produced. 5b1376d re-baselined
