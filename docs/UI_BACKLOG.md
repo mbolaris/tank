@@ -215,6 +215,15 @@ list would have rebuilt them.
   Energy) currently sit at equal visual weight. Group by Simulation / World
   actions / Modes / Advanced, and de-emphasize Reset specifically since it's
   destructive and shouldn't read the same as Pause.
+- [ ] **Check how broadcast stalls look on screen.** The live server misses one or two
+  15 Hz broadcasts several times a minute, and the misses run ~100 ms. The backend fix is
+  [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md) **13.1**.
+  `rendering/entityPositionInterpolator.ts` dead-reckons for up to 200 ms
+  (`MAX_EXTRAPOLATION_MS`), so straight-line motion should hide a stall. A fish that turns
+  during the gap will overshoot and then snap back through the 100 ms correction blend.
+  Record a stall at 80+ fish and decide whether the interpolator needs tuning, or whether
+  fixing 13.1 is enough. Do not tune the interpolator before 13.1 lands, or the tuning may
+  only hide the stall.
 
 ## Someday / stretch goal
 

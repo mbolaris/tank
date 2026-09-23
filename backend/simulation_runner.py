@@ -24,6 +24,7 @@ from backend.runner import (
     telemetry_samplers,
     world_switch,
 )
+from backend.runner.loop_lag import timed_lock
 from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
@@ -474,9 +475,10 @@ class SimulationRunner(CommandHandlerMixin):
     def get_state(self, force_full: bool = False, allow_delta: bool = True):
         """Get current simulation state for WebSocket broadcast.
 
-        Delegates to StatePublisher for caching and state construction.
+        Delegates to StatePublisher for caching and state construction. The
+        wait for ``self.lock`` is recorded as ``lock_wait`` in the status line.
         """
-        with self.lock:
+        with timed_lock(self.lock, self.perf_tracker, "lock_wait"):
             return self.state_publisher.get_state(
                 runner=self, force_full=force_full, allow_delta=allow_delta
             )
@@ -490,10 +492,6 @@ class SimulationRunner(CommandHandlerMixin):
     def serialize_state(self, state: Any) -> bytes:
         """Serialize a state payload with fast JSON and log slow frames."""
         return self.state_publisher.serialize_state(state)
-
-    # Removed: _build_full_state
-    # This logic is now likely in StatePublisher, or not needed.
-    # Note: StatePublisher has its own _build_full_state.
 
     def _collect_entities(self) -> list[EntitySnapshot]:
         """Collect entity snapshots (delegates to stats_collector module)."""

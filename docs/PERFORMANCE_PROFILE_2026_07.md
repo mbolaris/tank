@@ -18,6 +18,32 @@ determinism risk of each.
 > `record_diversity_sample`) from the now-lazy isolation scan (safe to defer,
 > since it's a pure/memoizable function). See the mutation_controller.py diff
 > for the actual implementation. P3/P4/P6/P7 remain open.
+>
+> **Status update (2026-09-22), checked against the tree:**
+>
+> - **Shipped since July:**
+>   - P6, partly: `5a41101e` removes fish from the per-fish collision sort. The pre-partitioned
+>     candidate lists remain open.
+>   - Backend publish path, first bullet: `state_publisher.py` now caches the previous frame's
+>     `to_delta_dict()` output, so each entity is converted once per frame instead of twice.
+>   - Instrumentation bug 2: `9afb7f15` / #915.
+>   - Two costs this profile never saw:
+>     - `7939e8eb` bounds the species registry. Its unbounded scan had reached 78% of frame
+>       time on a long-running world.
+>     - #957 stops the live poker ladder stalling frames for seconds on Windows.
+> - **Still open:**
+>   - P3 (poker proximity graph).
+>   - P4 (only if it still matters).
+>   - The rest of P6, and P7.
+>   - Instrumentation bug 1: `SimulationConfig.apply_flat_config` still maps only `headless`,
+>     so `main.py --profile-phases` still prints zeros.
+>   - The backend `_collect_entities` note.
+> - **New:** a live Windows server log adds serving-side costs that this headless profile
+>   cannot see: a ~100 ms broadcast stall, ~50 ms full-sync snapshots, and 300–400 KB payload
+>   outliers. They are tracked as **Theme 13** in
+>   [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md#theme-13--performance-of-the-live-server-2026-09-22).
+>   Item 13.4 re-runs this profile at live-server settings, because these numbers predate
+>   soccer in the tank and the story, legend and skill-ladder telemetry.
 
 ## Method
 

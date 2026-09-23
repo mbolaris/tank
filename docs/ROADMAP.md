@@ -296,6 +296,17 @@ distilled from an external code review (July 2026, 82/100): type-safety
 guardrails, frontend/backend contract drift, and product-facing reward
 semantics. Each item names its files and a step-by-step plan.
 
+**Performance** has two sources:
+
+- Engine-level (headless) optimization candidates, with their evidence and determinism risk,
+  are in [PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md). P1/P2/P5 have
+  shipped; P3, P4, P6 (partly shipped) and P7 remain open.
+- Serving-side costs measured on a live web server (broadcast stalls, full-sync snapshot
+  spikes, payload size) are **Theme 13** in [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md).
+
+Performance work must be trajectory-neutral unless it goes through the champion-validation
+path.
+
 ---
 
-*Last updated: July 2026*
+*Last updated: September 2026*

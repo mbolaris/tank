@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
+import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from fastapi import WebSocket
@@ -17,6 +19,22 @@ if TYPE_CHECKING:
     pass  # RunnerProtocol is imported directly above
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class FetchTiming:
+    """Where the time in one executor-backed state fetch went, in ms.
+
+    - ``queue``: submit -> an executor thread starts the work (pool saturation
+      or GIL starvation of the worker thread).
+    - ``work``: the fetch itself, including waiting for the simulation lock.
+    - ``resume``: work finished -> the awaiting coroutine runs again. Large
+      values mean the event loop itself was blocked.
+    """
+
+    queue_ms: float
+    work_ms: float
+    resume_ms: float
 
 
 @runtime_checkable
@@ -124,6 +142,25 @@ class WorldSnapshotAdapter:
     async def get_state_async(self, force_full: bool = False, allow_delta: bool = True) -> Any:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.get_state, force_full, allow_delta)
+
+    async def get_state_timed_async(
+        self, force_full: bool = False, allow_delta: bool = True
+    ) -> tuple[Any, FetchTiming]:
+        """``get_state_async`` plus a breakdown of where the wait went."""
+        submitted = time.perf_counter()
+
+        def _timed() -> tuple[Any, float, float]:
+            started = time.perf_counter()
+            state = self.get_state(force_full, allow_delta)
+            return state, started, time.perf_counter()
+
+        state, started, finished = await asyncio.get_running_loop().run_in_executor(None, _timed)
+        resumed = time.perf_counter()
+        return state, FetchTiming(
+            queue_ms=(started - submitted) * 1000.0,
+            work_ms=(finished - started) * 1000.0,
+            resume_ms=(resumed - finished) * 1000.0,
+        )
 
     def serialize_state(self, state: Any) -> bytes:
         """Serialize state payload to bytes for WebSocket transmission.

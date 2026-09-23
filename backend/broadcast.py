@@ -14,6 +14,7 @@ import time
 from contextlib import suppress
 from typing import TYPE_CHECKING, Union
 
+from backend.runner.loop_lag import LOOP_LAG
 from backend.runner.runner_protocol import RunnerProtocol
 from core.config.display import FRAME_RATE
 
@@ -88,8 +89,11 @@ async def broadcast_updates_for_world(
         stream_id,
     )
 
+    LOOP_LAG.ensure_running()
+
     frame_count = 0
     last_sent_frame = -1
+    last_send_at: float | None = None
     next_send_at = 0.0
     last_debug_log = time.perf_counter()
     slow_send_windows: dict[object, tuple[int, float]] = {}
@@ -144,7 +148,12 @@ async def broadcast_updates_for_world(
 
                 try:
                     get_start = time.perf_counter()
-                    state = await adapter.get_state_async(force_full=False, allow_delta=True)
+                    get_state_timed = getattr(adapter, "get_state_timed_async", None)
+                    if get_state_timed is not None:
+                        state, fetch = await get_state_timed(force_full=False, allow_delta=True)
+                    else:
+                        state = await adapter.get_state_async(force_full=False, allow_delta=True)
+                        fetch = None
                     get_ms = (time.perf_counter() - get_start) * 1000
                 except Exception as e:
                     logger.error(
@@ -196,6 +205,10 @@ async def broadcast_updates_for_world(
 
                 disconnected = set()
                 send_start = time.perf_counter()
+                # Send-to-send interval: what a client actually experiences,
+                # including the pre-send sleep that get/ser/send do not cover.
+                gap_ms = 0.0 if last_send_at is None else (send_start - last_send_at) * 1000
+                last_send_at = send_start
                 clients_snapshot = list(clients)
                 send_results = await asyncio.gather(
                     *(_send_with_timeout(client) for client in clients_snapshot),
@@ -248,10 +261,19 @@ async def broadcast_updates_for_world(
 
                 total_ms = get_ms + serialize_ms + send_ms
                 if total_ms > 50:
+                    fetch_detail = (
+                        ""
+                        if fetch is None
+                        else f" (queue={fetch.queue_ms:.0f} work={fetch.work_ms:.0f}"
+                        f" resume={fetch.resume_ms:.0f})"
+                    )
                     logger.warning(
-                        "broadcast_updates[%s]: SLOW get=%.0fms ser=%.0fms send=%.0fms (payload: %d bytes, clients: %d)",
+                        "broadcast_updates[%s]: SLOW gap=%.0fms get=%.0fms%s ser=%.0fms "
+                        "send=%.0fms (payload: %d bytes, clients: %d)",
                         resolved_world_id[:8],
+                        gap_ms,
                         get_ms,
+                        fetch_detail,
                         serialize_ms,
                         send_ms,
                         len(state_payload),

@@ -98,6 +98,9 @@ class AppContext:
     # Logging
     logger: logging.Logger = field(default_factory=lambda: logging.getLogger("backend"))
 
+    # psutil.Process reused across get_server_info() calls (see there)
+    _process: Any = field(default=None, repr=False)
+
     def get_server_info(self) -> ServerInfo:
         """Get information about the current server."""
         uptime = time.time() - self.server_start_time
@@ -110,8 +113,17 @@ class AppContext:
         try:
             import psutil  # type: ignore
 
-            process = psutil.Process()
-            cpu_percent = process.cpu_percent(interval=0.1)
+            # Never pass an interval here: cpu_percent(interval=0.1) sleeps
+            # for 100 ms, and this runs on the event loop (every discovery
+            # heartbeat and GET /api/servers/local), so it froze every
+            # WebSocket broadcast for 100 ms every 2 s. interval=None is
+            # non-blocking and reports usage since the previous call on the
+            # same Process object - i.e. over the last heartbeat period.
+            if self._process is None:
+                self._process = psutil.Process()
+                self._process.cpu_percent(interval=None)  # prime; first reading is 0.0
+            process = self._process
+            cpu_percent = process.cpu_percent(interval=None)
             memory_mb = process.memory_info().rss / 1024 / 1024
             physical_cpus = psutil.cpu_count(logical=False)
             if physical_cpus is None:
