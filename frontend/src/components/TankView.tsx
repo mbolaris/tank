@@ -163,15 +163,22 @@ export function TankView({ worldId }: TankViewProps) {
     };
     const followedFish = selection.followEnabled && selectedEntity?.type === 'fish' ? selectedEntity : null;
 
-    useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
+    useEntityPresenceReconciliation(
+        liveEntities,
+        selection.selectedEntityId,
+        selection.selectedEntityMissing,
+        selection.reconcileEntities
+    );
 
     // When the last usable payload landed. Presentation-only browser monotonic
     // time: it labels held frames as stale and never enters simulation state.
     // Held in state, not a ref, so the arena re-renders when it changes.
+    // Only the soccer arena reads it: setting it on every payload in the tank
+    // view re-rendered this whole tree a second time per WebSocket message.
     const [lastArrivalMs, setLastArrivalMs] = useState<number | undefined>(undefined);
     useEffect(() => {
-        if (state) setLastArrivalMs(performance.now());
-    }, [state]);
+        if (state && isSoccerArena) setLastArrivalMs(performance.now());
+    }, [state, isSoccerArena]);
 
     const arenaConnectionState = arenaStateFromConnection({
         connectionStatus,
