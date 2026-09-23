@@ -1888,20 +1888,38 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
 - **Remaining per-message React work in dev (~10 ms):** `ControlPanel`,
   `EvolutionSidebar`, `ModeSwitch`, `CanvasOverlays` get inline callbacks from
   `TankView`, so `memo` needs `useCallback` there first.
-- **Canvas:** `renderFood` costs as much JS as all fish together
-  (~22-25 ms/s each): every food item allocates a fresh radial gradient and
-  does two save/restore pairs per frame. A cached per-sprite glow would cut
-  both JS and raster; the raster half cannot be measured headless.
+- **Canvas food — normal food SHIPPED, live plankton open.** `renderFood`
+  cost as much JS as all fish together (~22-25 ms/s each). Normal food's
+  shadow + glow is now stamped from a per-(size, scale) sprite
+  (`utils/renderer_food_halo.ts`); a Chromium pixel check against the direct
+  drawing shows max channel difference 5-7/255, none above 8. The measured
+  win was smaller than expected: `renderFood` inclusive -10-15% (e.g.
+  24.4 -> 20.6 ms/s), because most of what remains is **live plankton**
+  (~40% of food in the default config) - three save/restore pairs, a radial
+  gradient, four strokes and two arcs per item per frame, all animated by a
+  frame-global `pulse` plus a per-item sway. Next: a unit gradient sprite for
+  the body (drawn at `globalAlpha = 0.4 * pulse`), the four appendages as one
+  path and one stroke, and no save/restore where explicit resets suffice.
 - `e2e/tank-director.spec.ts` "does not replay the backfilled story-event
   history" fails ~1 run in 4 locally on master and on this change alike
   (CI retries twice). Worth a look on its own.
-- **Local mypy misses type errors in `benchmarks/`.** CI's `mypy core/
+- **`champions/tank/survival_5k.json` has been stale since 4b55bca**
+  (`_draw_on_reserves`, a real behavior change): nightly `verify-champions`
+  expects 702.5775136245999 on seed 42 and CI produces 818.4348777775728 -
+  the same value every local run in this theme produced. 5b1376d re-baselined
+  only `ecosystem_health_10k` because this champion is a 42/7/123 matrix and
+  the verify job runs seed 42 alone. The fix is
+  `gh workflow run bench.yml --ref master -f rebaseline_tank=true` and
+  transcribing the `tank-champion-rebaseline` artifact; agent tokens get 403
+  on workflow_dispatch, so it needs a maintainer.
+- **SHIPPED (2026-09-23): mypy now checks `benchmarks/` explicitly.** Was: CI's `mypy core/
   backend/ tools/` reports errors in `benchmarks/` modules it reaches by
   import (`tools/run_selection_response_assay.py` imports
   `selection_response_10k`), but the same command here did not, so #961
-  merged with a red mypy job. Checking `benchmarks/` explicitly would close
-  the gap, but it currently has 19 pre-existing errors across 3 files
-  (`python -m mypy benchmarks/`, 2026-09-23); fix those first.
+  merged with a red mypy job. The 19 existing errors (all `get_stats()`
+  results indexed as dicts) are annotated, the three benchmark results are
+  byte-identical to master as whole JSON documents, and `benchmarks/` is in
+  the scope in `ci.yml`, `tools/agent_gate.py` and CLAUDE.md.
 
 ---
 
