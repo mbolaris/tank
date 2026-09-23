@@ -1899,7 +1899,7 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
 - **Remaining per-message React work in dev (~10 ms):** `ControlPanel`,
   `EvolutionSidebar`, `ModeSwitch`, `CanvasOverlays` get inline callbacks from
   `TankView`, so `memo` needs `useCallback` there first.
-- **Canvas food — normal food SHIPPED, live plankton open.** `renderFood`
+- **Canvas food — SHIPPED (normal food and live plankton).** `renderFood`
   cost as much JS as all fish together (~22-25 ms/s each). Normal food's
   shadow + glow is now stamped from a per-(size, scale) sprite
   (`utils/renderer_food_halo.ts`); a Chromium pixel check against the direct
@@ -1908,9 +1908,20 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
   24.4 -> 20.6 ms/s), because most of what remains is **live plankton**
   (~40% of food in the default config) - three save/restore pairs, a radial
   gradient, four strokes and two arcs per item per frame, all animated by a
-  frame-global `pulse` plus a per-item sway. Next: a unit gradient sprite for
-  the body (drawn at `globalAlpha = 0.4 * pulse`), the four appendages as one
-  path and one stroke, and no save/restore where explicit resets suffice.
+  frame-global `pulse` plus a per-item sway.
+  *Plankton, shipped 2026-09-23* (`utils/renderer_live_food.ts`): live food
+  sizes are continuous - they shrink with every bite, and a seed-42 tank had
+  nearly one distinct size per item - so per-size sprites like the halo's
+  would never be reused. The body is instead **one** 128 px gradient sprite
+  stamped at each item's radius (a radial gradient is scale-invariant) at
+  `globalAlpha = 0.4 * pulse`; the pulse moved from the colour strings into
+  globalAlpha (measured pixel-exact), the four appendages became one path and
+  one stroke, and four save/restore pairs became one. `renderFood` inclusive
+  **20.8-25.4 -> 15.1-16.4 ms/s (~-30%)**, two interleaved A/B pairs against
+  master on the dev server. `e2e/food-rendering.spec.ts` now draws both the
+  halo and plankton both ways in Chromium and bounds the difference at 8/255
+  per channel (measured max 6; a 0.4 -> 0.3 body-alpha mutation reads 13 and
+  fails), and checks the context state comes back unchanged.
 - `e2e/tank-director.spec.ts` "does not replay the backfilled story-event
   history" fails ~1 run in 4 locally on master and on this change alike
   (CI retries twice). Worth a look on its own.

@@ -6,6 +6,7 @@
  * caches; the heavier drawing routines live in focused modules:
  * - renderer_background.ts: water gradient, light rays, particles, seabed
  * - renderer_effects.ts: poker/birth/death overlays, energy bars, shadow/glow
+ * - renderer_food_halo.ts, renderer_live_food.ts: food halos and live plankton
  * - renderer_sprites.ts: image blits, hue tinting, HSL utils, frame timing
  * - renderer_svg_fish.ts: parametric fish body/pattern/eye drawing
  */
@@ -30,6 +31,7 @@ import {
     drawShadow,
 } from './renderer_effects';
 import { drawFoodHalo } from './renderer_food_halo';
+import { drawLiveFood } from './renderer_live_food';
 import { SpriteTinter, drawImage, getAnimationFrame } from './renderer_sprites';
 import { drawSVGFishBody, drawSVGFishFront } from './renderer_svg_fish';
 import { EntityFacingTracker } from './renderer_facing';
@@ -384,59 +386,11 @@ export class Renderer {
         const offsetX = (width - scaledWidth) / 2;
         const offsetY = (height - scaledHeight) / 2;
 
-        // Live food gets special visual treatment
+        // Live food: pulsing zooplankton; normal food: shadow + subtle glow.
+        // Both are stamped from cached sprites where possible.
         if (isLiveFood) {
-            // Subtle shadow
-            drawShadow(this.ctx, x + width / 2, y + height, scaledWidth * 0.6, scaledHeight * 0.2);
-
-            // Pulsing animation for live food
-            const pulse = Math.sin(elapsedTime * 0.005) * 0.3 + 0.7;
-            const cx = x + width / 2;
-            const cy = y + height / 2;
-            const planktonSeed = (x + y) * 0.01;
-
-            // Simple translucent body for zooplankton
-            this.ctx.save();
-            this.ctx.globalAlpha = 0.4 * pulse;
-            const bodyGlow = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, scaledWidth * 0.8);
-            bodyGlow.addColorStop(0, '#aaffaa');
-            bodyGlow.addColorStop(0.6, '#6ad86a');
-            bodyGlow.addColorStop(1, 'rgba(106, 216, 106, 0)');
-            this.ctx.fillStyle = bodyGlow;
-            this.ctx.beginPath();
-            this.ctx.arc(cx, cy, scaledWidth * 0.8, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.restore();
-
-            // Simple appendages for zooplankton (4 appendages)
-            this.ctx.save();
-            this.ctx.lineWidth = 0.8;
-            this.ctx.strokeStyle = `rgba(140, 220, 140, ${0.35 * pulse})`;
-            for (let i = 0; i < 4; i++) {
-                const angle = (Math.PI * 2 * i) / 4 + pulse * 0.3;
-                const sway = Math.sin(elapsedTime * 0.003 + planktonSeed + i) * 2;
-                const length = scaledWidth * 0.5;
-                const startX = cx + Math.cos(angle) * (scaledWidth * 0.3);
-                const startY = cy + Math.sin(angle) * (scaledWidth * 0.3);
-                const endX = cx + Math.cos(angle) * length + sway;
-                const endY = cy + Math.sin(angle) * length + sway * 0.5;
-
-                this.ctx.beginPath();
-                this.ctx.moveTo(startX, startY);
-                this.ctx.lineTo(endX, endY);
-                this.ctx.stroke();
-            }
-            this.ctx.restore();
-
-            // Simple central highlight
-            this.ctx.save();
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * pulse})`;
-            this.ctx.beginPath();
-            this.ctx.arc(cx, cy, scaledWidth * 0.15, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.restore();
+            drawLiveFood(this.ctx, x, y, width, height, scaledWidth, scaledHeight, elapsedTime);
         } else {
-            // Shadow + subtle glow, stamped from a per-size sprite
             drawFoodHalo(this.ctx, x, y, width, height, scaledWidth, scaledHeight);
         }
 
