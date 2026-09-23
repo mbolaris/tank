@@ -1843,12 +1843,55 @@ changes the 4,000-frame game count 1,257 -> 1,290.
   frame (1,500-frame cProfile, 2026-09-23); find how much of that is live match
   simulation versus bookkeeping before touching it.
 
-### 13.9 Frontend frame time is unmeasured — `M` · ★★
-Every number above is backend. Nobody has measured what the browser spends per
-frame rendering ~100 fish plus fractal plants, or how often it drops frames.
-The Playwright path from 7.4 can record `requestAnimationFrame` intervals over
-a fixed-seed session; measure first, then decide whether the renderer (7.3's
-canvas trace makes changes provable) deserves a theme of its own.
+### 13.9 Frontend frame time — `M` · ★★ — MEASURED (2026-09-23), first fixes SHIPPED
+`frontend/scripts/frame-probe.mjs` (`npm run probe:frames`) opens a fresh
+seed-42 world in headless Chromium and reports rAF intervals, main-thread
+script time, React render+commit time per WebSocket message, and self/inclusive
+CPU attribution. Caveat it states itself: headless rasterizes canvas on the
+CPU, so native `(program)` time (~60% of the main thread here) and fps are
+pessimistic next to a GPU browser. JS costs carry over; compare with
+interleaved A/B runs, and pause other worlds so the message rate holds steady.
+
+*What it found* (1600x900, 14.4 WebSocket messages/s):
+
+| | dev server (what `start.py` launches) | production build |
+|---|---|---|
+| script time | 394-425 ms/s | 133-155 ms/s |
+| React per message | 19.2-20.1 ms | 1.12-1.48 ms |
+| canvas render loop (JS) | ~107 ms/s | ~119 ms/s |
+
+1. **`TankView` rendered twice per message** (four times in dev under
+   StrictMode). Two effects each set state after every payload: the
+   soccer-arena arrival clock (read only by the arena) and the selection
+   reconciliation dispatch - which the reducer then ignored, but a reducer
+   dispatch still re-renders the caller before bailing out. React batches
+   effects of one commit, so *each* fix alone left the count at four; both
+   were needed. Now one render per message (two in dev), measured by
+   counting renders against messages.
+2. `PanelToggleBar` and `SkillProgressPanel` (whose props change only on
+   user action) re-rendered with every payload; now `memo`.
+3. *Effect:* React per message **dev 19.2-20.1 -> 10.8-11.1 ms (-45%)**,
+   **production 1.12-1.48 -> 0.73-1.07 ms (~-30%)**, three interleaved A/B
+   pairs each against master. Guarded by
+   `useEntityPresenceReconciliation.test.ts`, which checks the new guard
+   skips exactly the cases the reducer ignores.
+
+*Open, in order of leverage:*
+- **`start.py` serves the Vite dev server.** Anyone using the one-command
+  launcher watches the dev build: React costs ~10x production per message
+  even after the fixes above, and `jsxDEV` alone is ~90 ms/s of main thread.
+  A `--prod` (or default-production, `--dev` for hot reload) launch mode is
+  a maintainer workflow decision, not an optimization to slip in.
+- **Remaining per-message React work in dev (~10 ms):** `ControlPanel`,
+  `EvolutionSidebar`, `ModeSwitch`, `CanvasOverlays` get inline callbacks from
+  `TankView`, so `memo` needs `useCallback` there first.
+- **Canvas:** `renderFood` costs as much JS as all fish together
+  (~22-25 ms/s each): every food item allocates a fresh radial gradient and
+  does two save/restore pairs per frame. A cached per-sprite glow would cut
+  both JS and raster; the raster half cannot be measured headless.
+- `e2e/tank-director.spec.ts` "does not replay the backfilled story-event
+  history" fails ~1 run in 4 locally on master and on this change alike
+  (CI retries twice). Worth a look on its own.
 
 ---
 
