@@ -48,6 +48,8 @@ cd frontend && npm run dev        # Frontend on :3000
 
 # Performance change: speedup + bit-identical trajectory verdict vs a base ref
 python tools/perf_check.py --base HEAD --repeats 2
+# Cost ratchet: deterministic work counts pinned in tests/test_cost_ratchet.py
+python tools/cost_counters.py     # prints current counts, ready to paste as pins
 
 # Validate improvement against champion
 python tools/validate_improvement.py results.json champions/tank/survival_5k.json

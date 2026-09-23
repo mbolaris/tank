@@ -5,7 +5,8 @@
 
 import { describe, it, expect } from 'vitest';
 import type { SimulationUpdate, StatsData } from '../types/simulation';
-import { applyFullUpdate, routeCommandResponse, computeReconnectDelay } from './useWebSocket';
+import { applyDelta, applyFullUpdate, routeCommandResponse, computeReconnectDelay } from './useWebSocket';
+import type { DeltaUpdate } from '../types/simulation';
 
 /**
  * Pure function to normalize a WorldUpdatePayload into SimulationUpdate format.
@@ -232,5 +233,48 @@ describe('Command response routing', () => {
 
         expect(calls).toEqual(['first', 'second']);
         expect(callbacks.size).toBe(0);
+    });
+});
+
+describe('applyDelta stats cadence', () => {
+    const base = (): SimulationUpdate => {
+        const stats = { frame: 100, fish_count: 42 } as StatsData;
+        return {
+            type: 'update',
+            snapshot: {
+                frame: 100,
+                elapsed_time: 10,
+                entities: [],
+                stats,
+                poker_events: [],
+            },
+            stats,
+        } as unknown as SimulationUpdate;
+    };
+    const delta = (frame: number, stats?: StatsData): DeltaUpdate => ({
+        type: 'delta',
+        schema_version: 1,
+        snapshot: {
+            frame,
+            elapsed_time: frame / 10,
+            updates: [],
+            added: [],
+            removed: [],
+            poker_events: [],
+            ...(stats ? { stats } : {}),
+        },
+    });
+
+    it('keeps the last stats block but advances its frame when a delta omits stats', () => {
+        const next = applyDelta(base(), delta(102));
+        expect(next.stats?.fish_count).toBe(42);
+        expect(next.stats?.frame).toBe(102);
+        expect(next.snapshot?.stats?.frame).toBe(102);
+    });
+
+    it('takes a fresh stats block when the delta carries one', () => {
+        const fresh = { frame: 105, fish_count: 43 } as StatsData;
+        const next = applyDelta(base(), delta(105, fresh));
+        expect(next.stats).toBe(fresh);
     });
 });

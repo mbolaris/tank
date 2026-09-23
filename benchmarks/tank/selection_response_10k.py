@@ -22,6 +22,7 @@ from typing import Any
 from core.entities import Fish
 from core.services.stats.trait_trends import EVOLUTION_TRAIT_KEYS, compute_trait_means
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import FAST_STEP_ACTION
 
 BENCHMARK_ID = "tank/selection_response_10k"
 FRAMES = 10000
@@ -76,8 +77,11 @@ def collect_samples(seed: int, frames: int, interval: int) -> list[dict[str, Any
     world.reset(seed=seed, config=config)
 
     samples: list[dict[str, Any]] = []
+    # Fast step: the sampler reads world.get_stats() itself, so the per-frame
+    # metrics a full step builds (and discards) were ~11% of this benchmark.
+    fast = {FAST_STEP_ACTION: True}
     for frame in range(1, frames + 1):
-        world.step()
+        world.step(fast)
         if frame % interval == 0:
             samples.append(_sample_world(world, frame))
         if frame % 2000 == 0:
@@ -240,8 +244,9 @@ def _run_fingerprint_pass(seed: int, fingerprint_callback: Callable[[Any, int], 
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
     world.reset(seed=seed, config=config)
     fingerprint_callback(world, 0)
+    fast = {FAST_STEP_ACTION: True}
     for frame in range(1, FRAMES + 1):
-        world.step()
+        world.step(fast)
         fingerprint_callback(world, frame)
 
 

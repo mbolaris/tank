@@ -319,7 +319,7 @@ export function applyFullUpdate(
     return update;
 }
 
-function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
+export function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
     // V1 Schema: All payloads require nested snapshot structure
     // Backend always sends delta.snapshot with updates/added/removed
 
@@ -391,8 +391,12 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         }
     });
 
-    // Handle stats (use delta stats if present, otherwise preserve current)
-    const nextStats = deltaStats ?? currentSnapshot.stats;
+    // Stats: the backend sends a fresh block only every few frames (6 Hz), so a
+    // delta without one keeps the last block - but advances its frame, which
+    // the header shows as a live counter.
+    const previousStats = currentSnapshot.stats;
+    const nextStats =
+        deltaStats ?? (previousStats ? { ...previousStats, frame: nextFrame } : previousStats);
 
     // Handle poker events (use delta events if present, otherwise preserve current)
     const currentEvents = currentSnapshot.poker_events ?? [];

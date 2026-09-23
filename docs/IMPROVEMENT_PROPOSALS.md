@@ -38,9 +38,9 @@ it has drifted. See the closing rule at the bottom of this file.
 **Best current starter picks:**
 
 - **Theme 13 (performance, 2026-09-22)** — the newest open queue, and the one
-  that speeds up every other item's loop. **13.4** (a deterministic cost
-  ratchet) is the highest-leverage pick; **13.5**, **13.6**, **13.7** and each
-  **13.8** candidate are `S`-sized and provable with one
+  that speeds up every other item's loop. **13.4** (the cost ratchet) has
+  shipped, so every win below now gets locked in by lowering a pin; **13.5**,
+  **13.7** and the open **13.8** candidates are `S`-sized and provable with one
   `python tools/perf_check.py` run. This partly supersedes the "no pick-up-and-go
   infrastructure work" note below: those items are measured, small, and
   behavior-preserving by construction.
@@ -1713,21 +1713,44 @@ profile. Also fixed: `main.py --profile-phases` printed all zeros because
 `apply_flat_config` dropped the key (the 2026-07 profile's instrumentation bug
 #1) - it now reports real phase shares.
 
-### 13.4 A deterministic cost ratchet — `M` · ★★★
+### 13.4 A deterministic cost ratchet — `M` · ★★★ — SHIPPED (2026-09-23)
 **The recursive-self-improvement lever.** Wall-clock cannot gate CI - it is
-noisy and machine-dependent - which is why nothing stops a PR from quietly
-making the engine 20% slower. *Operation counts* can: spatial queries per
-frame, genome serializations per broadcast, bytes per delta frame, and
-allocations of known-hot types are deterministic for a seed on a given
-platform. Pin them the way `LEGACY_MAX_LINES` pins file sizes: a test runs a
-short fixed-seed tank (and one broadcast sequence) with counters, and asserts
-each count is at or below its pin, with a small tolerance for cross-platform
-float drift (see 1.0). An agent that lands an optimization tightens the pin in
-the same PR; an agent that regresses one has to justify raising it. That turns
-"performance" from an occasional audit into a monotone ratchet the evolution
-loop climbs on its own. Start with the three counts 13.1/13.2 just moved.
+noisy and machine-dependent - which is why nothing stopped a PR from quietly
+making the engine slower. Work counts can. `tools/cost_counters.py` profiles
+three fixed-seed scenarios (the `survival_5k` config and the default tank, each
+seeded with 50 fish; and 20 live-loop broadcasts) and counts calls into the
+repo's own functions, spatial-grid calls, genome serializations per delta, and
+wire bytes. `tests/test_cost_ratchet.py` pins each one like `LEGACY_MAX_LINES`:
+a counter may not rise past its pin, and a win must be harvested by lowering
+the pin. ~8s, in the `core` pre-PR shard, so CI enforces it on every PR.
 
-### 13.5 Rolling energy windows are O(window) per stats call — `S` · ★★
+*Measured, not assumed:*
+- **Deterministic across interpreters.** Every counter is identical on CPython
+  3.10 and 3.11 (the ratchet test passes on both), and the engine totals were
+  also identical on 3.12 and 3.13. Getting there took one fix: stdlib and
+  synthesized code (`<frozen abc>`, dataclass `__init__` from `<string>`) are
+  counted differently per version, and an early draft that let them in made
+  3.10 and 3.11 disagree by 1.6% on an identical trajectory.
+- **It catches the regression #960 fixed.** Re-introducing the eager genome
+  serialization fails the test: `broadcast.calls_per_delta` 1949.7 > pin
+  1300.1 (+50%), `broadcast.genome_serializations_per_delta` 10.2 > pin 0.1.
+  Run on the pre-#960 commit, the counters read 1939.2 calls per delta.
+- **Its known blind spot.** The `*.calls_per_frame` totals are a broad proxy
+  for interpreter work and can move the wrong way: #960's allocation-free
+  `select_food_target` made `survival_5k` 5% faster but *raised*
+  `benchmark_tank.calls_per_frame` 2.5% (15,223.5 -> 15,607.2), because it
+  swapped uncounted per-candidate dataclass constructors for counted helper
+  calls. A risen total is therefore a question, answered with
+  `tools/perf_check.py` timings and a reviewed re-pin; the named counters
+  (spatial calls, genome serializations, bytes) count domain operations that
+  refactoring cannot fool. Add more named counters as hot paths are found.
+
+### 13.5 Rolling energy windows are O(window) per stats call — `S` · ★
+*Downgraded 2026-09-23:* 13.6 cut stats collection on the live path from 15 Hz
+to 6 Hz, and `selection_response_10k` (the one benchmark on the non-fast step
+path) now fast-steps, so this is worth ~0.4 ms per 6 Hz stats frame. Still
+correct to fix, no longer urgent. Original analysis:
+
 `EnergyTracker.get_recent_energy_breakdown`/`get_recent_energy_burn` re-sum up
 to 2,000 per-frame dicts on every call - ~27% of what remains of a broadcast
 build after 13.1, and ~8% of every frame on the non-fast `world.step()` path.
@@ -1739,12 +1762,23 @@ per frame) would be both O(1) and *more* accurate than today's sequential sum.
 Treat as a reporting change: note it in the PR, and check `--export-stats`
 consumers.
 
-### 13.6 Stats at 15 Hz is more than anyone can read — `S` · ★★
-Every delta frame recomputes and ships the full stats block (`get_stats` is
-~45% of the post-13.1 build). Numbers on a panel changing 15 times a second are
-not information. Send stats every N frames (or when a sample lands) and have
-the frontend keep the last block when a delta omits it. Needs a small frontend
-change and a contract-test update (7.1); behavior-neutral for the sim.
+### 13.6 Stats at 15 Hz is more than anyone can read — `S` · ★★ — SHIPPED (2026-09-23)
+Every delta frame recomputed and shipped the full stats block (~45% of a
+post-13.1 build). `StatePublisher.delta_stats_interval` (5 frames: 6 Hz at 30
+FPS) now attaches stats to a delta only once the interval has passed; full
+syncs always carry them. The frontend already kept its last block when a delta
+omitted `stats` (`deltaStats ?? currentSnapshot.stats` in `applyDelta`) - it
+now also advances that block's `frame`, so the header's frame counter still
+ticks on every broadcast. Metrics-history sampling is unaffected: the sim loop
+drives it independently of broadcasts.
+- *Measured* (interleaved A/B vs HEAD, three pairs, 300 broadcasts each):
+  `get_state` mean 2.77-2.96 -> 1.96-2.01 ms (-31%), median 3.01-3.12 ->
+  1.65-1.70 ms (-45%); p95 unchanged, as it should be - those are the frames
+  that still carry stats.
+- *Ratchet:* `broadcast.bytes_per_delta` 33,510.3 -> 20,960.0 (-37%),
+  `broadcast.calls_per_delta` 1,300.1 -> 1,171.0, both re-pinned.
+- Pinned by `tests/test_delta_stats_cadence.py` and a vitest case in
+  `frontend/src/hooks/useWebSocket.test.ts`.
 
 ### 13.7 Benchmark runtime budgets have drifted — `S` · ★★
 `survival_5k` declares `EXPECTED_RUNTIME_SECONDS = 45` and ran 54-62s here.
@@ -1755,14 +1789,59 @@ budgets catch wall-clock regressions coarsely, counts catch them precisely.
 
 ### 13.8 The remaining 2026-07 candidates, re-ranked
 Still open from [PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md),
-re-measured on the default tank 2026-09-22: **P3** poker proximity graph
-rebuilt every frame (~5.6% of frame; the eligibility early-out is the
-trajectory-safe variant), **P6** collision-candidate sorting (~6% of the
+re-measured 2026-09-22: **P6** collision-candidate sorting (~6% of the
 `survival_5k` frame including real eating work), **P7** double spatial-grid
 maintenance (~1%). Each is now a `tools/perf_check.py` away from a provable
-verdict. Also: `benchmarks/tank/selection_response_10k.py` steps with plain
-`world.step()` and so pays for full metrics every frame (~11% of frame on that
-path) - check whether its sampler needs them before switching it to fast step.
+verdict, and a `tools/cost_counters.py` re-pin away from being locked in.
+
+**`selection_response_10k` fast-steps — SHIPPED (2026-09-23).** It stepped with
+plain `world.step()`, building per-frame metrics, events and a snapshot it then
+discarded (its sampler calls `world.get_stats()` itself). `tools/perf_check.py
+--benchmark benchmarks/tank/selection_response_10k.py`: trajectory IDENTICAL
+(score 112.43906360166058, 41 checkpoints), runtime **-21.6%** (131.89s ->
+103.40s, base 50810e4, quiet machine; an earlier pass with other load measured
+-22.5%). The earlier "~11%" estimate counted only the metrics.
+
+**P3 — SHIPPED (2026-09-23): poker proximity builds its graph among ready fish
+first.** Measured on the default tank: only **~1.9 of ~65 fish are
+poker-ready** on an average frame (alive, off cooldown, funded), and 46% of
+frames have fewer than two - yet the system ran a spatial query for every fish,
+every frame, to build an all-fish graph. It now builds the ready-only graph
+(same `_build_proximity_graph` arithmetic, same sorted contact order); no
+candidate group -> no graph at all; exactly one -> play it directly. With
+**two or more** candidates it falls back to the all-fish graph, and that
+fallback is load-bearing, not caution: a non-ready fish can bridge two ready
+groups, and the all-fish component order decides which group gets the frame's
+single game. Removing the fallback diverges seed 42 by frame 250 (60 fish) and
+changes the 4,000-frame game count 1,257 -> 1,290.
+- *Identical:* full-state digests at 80 checkpoints over 4,000 default-tank
+  frames on seeds 42 and 7 (1,257 and 1,003 games) match the old code, and
+  `tests/test_poker_proximity_ready_first.py` pins it against a verbatim copy
+  of the old update (it kills the no-fallback mutant: 33 vs 29 games).
+- *Faster:* default tank 9.83-9.98 -> 9.21-9.51 ms/frame across three
+  interleaved A/B pairs (~5%); `default_tank.calls_per_frame` re-pinned
+  12,778.2 -> 12,346.7.
+- *Not on the benchmark path:* the 2026-07 profile said poker runs in the
+  benchmarks too. It does not - in the `survival_5k` config
+  `poker_system.enabled` is False (0 games in 2,000 frames) - so this speeds
+  the live tank, not benchmark runtime.
+- The debug counter `groups_detected` now counts *ready* groups and is
+  renamed `ready_groups_detected` (no readers outside the system).
+
+### 13.10 Smaller verified wins and the next candidates (2026-09-23)
+- **SHIPPED:** the engine's energy recorder resolved each entity's identity
+  twice per energy delta (`type_name()` then `stable_id()`, each a full
+  `get_identity()`); now once. Default-tank digests unchanged;
+  `*.calls_per_frame` -1.9% / -2.0%, re-pinned.
+- **Open, `S`:** `GeneticDiversityTracker.update` re-reads every fish's genome
+  traits each frame (~3% of the default-tank frame). Genomes are immutable
+  after creation, so a per-genome cache of the extracted values is exact -
+  but read `fish.species` live, since taxonomy can reclassify a fish. Do not
+  sample it every N frames instead: reproduction reads the diversity score
+  every frame, so that is a behavior change.
+- **Open, measure first:** the soccer league tick is ~5% of the default-tank
+  frame (1,500-frame cProfile, 2026-09-23); find how much of that is live match
+  simulation versus bookkeeping before touching it.
 
 ### 13.9 Frontend frame time is unmeasured — `M` · ★★
 Every number above is backend. Nobody has measured what the browser spends per

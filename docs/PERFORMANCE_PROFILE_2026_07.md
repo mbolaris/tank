@@ -168,9 +168,13 @@ later; (b) and (c) change *when* games form.
 **Risk: medium.** Any cadence change alters trajectories and therefore
 benchmark scores (single-seed ecosystem_health swings are documented in
 CLAUDE.md). Prefer (a) first; treat (b)/(c) as behavior changes requiring
-multi-seed validation. Note poker runs even in standard benchmarks
+multi-seed validation. ~~Note poker runs even in standard benchmarks
 (`poker_activity_enabled=False` does not disable fish-fish poker), so this
-cost is on the benchmark path too.
+cost is on the benchmark path too.~~ *Corrected 2026-09-23: in the
+`survival_5k` config `engine.poker_system.enabled` is False and
+PokerProximitySystem returns before building anything - 0 games in 2,000
+frames. This cost is on the live/default tank only. Option (a) shipped as
+IMPROVEMENT_PROPOSALS 13.8.*
 
 ### P4. `genetic_distance` micro-cost (~large, but mostly fixed by P1)
 
