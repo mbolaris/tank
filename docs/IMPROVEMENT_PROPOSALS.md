@@ -1916,10 +1916,13 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
   backend/ tools/` reports errors in `benchmarks/` modules it reaches by
   import (`tools/run_selection_response_assay.py` imports
   `selection_response_10k`), but the same command here did not, so #961
-  merged with a red mypy job. The 19 existing errors (all `get_stats()`
-  results indexed as dicts) are annotated, the three benchmark results are
-  byte-identical to master as whole JSON documents, and `benchmarks/` is in
-  the scope in `ci.yml`, `tools/agent_gate.py` and CLAUDE.md.
+  merged with a red mypy job. The 19 existing errors were all `get_stats()`
+  results indexed as dicts: the 15 in `survival_5k` and
+  `ecosystem_health_10k` are annotated (both results byte-identical to master
+  as whole JSON documents); the 4 in the held-out evaluator are silenced by a
+  `pyproject.toml` override instead, because `benchmarks/heldout` is a locked
+  path agents may not edit. `benchmarks/` is in the scope in `ci.yml`,
+  `tools/agent_gate.py` and CLAUDE.md.
 
 ---
 

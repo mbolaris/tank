@@ -181,6 +181,14 @@ exclude = [
 
 # Overrides
 [[tool.mypy.overrides]]
+# The held-out evaluator is a locked path (tools/check_locked_paths.py): agents
+# may not edit it, even to add annotations, so its existing errors (indexing the
+# dict[str, object] that get_stats() returns) cannot be fixed from a PR. It is
+# still parsed; only its own errors are silenced, now that benchmarks/ is in scope.
+module = "benchmarks.heldout.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = "core.simulation.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
