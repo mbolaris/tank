@@ -87,6 +87,8 @@ python start.py
 
 This will run pre-flight checks, install dependencies if missing, start both servers in parallel with colored output logging, and open your browser automatically.
 
+Add `--prod` (`python start.py --prod`) to serve a production build of the frontend instead of the Vite dev server: smoother in the browser, but no hot reload.
+
 *(Alternatively, you can run them in separate terminals: run `python main.py` for the backend, and run `cd frontend && npm run dev` to start the frontend).*
 
 ## Full Setup Steps (First Time)

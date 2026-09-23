@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { useSkillProgress } from '../hooks/useSkillProgress';
 import type { SkillProgressDomain, SkillVerdict } from '../types/skillProgress';
 import styles from './SkillProgressPanel.module.css';
@@ -51,7 +53,9 @@ interface SkillProgressPanelProps {
  * bare "stalled" invites someone to go hunting for a bug when the real answer
  * may be "three samples is not enough to tell yet".
  */
-export function SkillProgressPanel({ worldId }: SkillProgressPanelProps) {
+// Memoized: it fetches its own data and depends only on worldId, but sits under
+// a sidebar that re-renders on every WebSocket payload.
+export const SkillProgressPanel = memo(function SkillProgressPanel({ worldId }: SkillProgressPanelProps) {
     const { domains, loading, error } = useSkillProgress(worldId);
 
     return (
@@ -76,4 +80,4 @@ export function SkillProgressPanel({ worldId }: SkillProgressPanelProps) {
             )}
         </section>
     );
-}
+});

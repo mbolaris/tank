@@ -161,6 +161,8 @@ python start.py
 
 This runs pre-flight checks, installs frontend dependencies if missing, starts both servers in parallel with colored log output, opens http://localhost:3000 in your browser, and shuts everything down cleanly on `Ctrl+C`.
 
+Just want to watch the tank? Use `python start.py --prod`. It builds the frontend once and serves the production bundle, which spends roughly a tenth of the dev server's React time per update (measured in `docs/IMPROVEMENT_PROPOSALS.md` 13.9). The default dev server keeps hot reload for working on the UI.
+
 *(Alternatively, run them in separate terminals: `python main.py` from the root for the backend, and `cd frontend && npm run dev` for the frontend.)*
 
 ### Run Headless (10-300x Faster)

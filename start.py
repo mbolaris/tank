@@ -3,8 +3,17 @@
 
 Launches the FastAPI backend and Vite React frontend in parallel,
 monitors their execution, and opens the app in the default browser.
+
+    python start.py          # Vite dev server: hot reload, for working on the UI
+    python start.py --prod   # production build: for watching the tank
+
+The dev server runs React's development build, which measured ~10x the
+production build's render cost per WebSocket message (IMPROVEMENT_PROPOSALS
+13.9). ``--prod`` builds the frontend once and serves it with ``vite
+preview`` on the same port, with the same /api proxy.
 """
 
+import argparse
 import os
 import signal
 import socket
@@ -168,7 +177,39 @@ def kill_process(proc):
             pass
 
 
+FRONTEND_PORT = 3000
+
+
+def frontend_command(prod: bool) -> list[str]:
+    """The npm command that serves the frontend on FRONTEND_PORT."""
+    if not prod:
+        return ["npm", "run", "dev"]
+    # vite preview takes its host and /api proxy from vite.config's server
+    # block, but not its port, so pin the port the rest of this script expects.
+    return ["npm", "run", "preview", "--", "--port", str(FRONTEND_PORT), "--strictPort"]
+
+
+def build_frontend(frontend_dir: str, use_shell: bool) -> None:
+    """Build the production frontend bundle, exiting on failure."""
+    print(f"{GRAY}[System]{RESET} Building the production frontend (npm run build)...")
+    try:
+        subprocess.run(["npm", "run", "build"], cwd=frontend_dir, shell=use_shell, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print(f"{RED}❌ Error: 'npm run build' failed. Fix the build or run without --prod.{RESET}")
+        sys.exit(1)
+    print(f"{GREEN}✓ Frontend built.{RESET}")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Start the Tank World backend and frontend.")
+    parser.add_argument(
+        "--prod",
+        action="store_true",
+        help="Serve a production frontend build instead of the Vite dev server "
+        "(faster in the browser, no hot reload).",
+    )
+    args = parser.parse_args()
+
     print_banner()
 
     python_exe = get_python_executable()
@@ -176,6 +217,8 @@ def main():
 
     frontend_dir = os.path.join(os.getcwd(), "frontend")
     use_shell = sys.platform == "win32"
+    if args.prod:
+        build_frontend(frontend_dir, use_shell)
 
     # Start new process groups to handle clean SIGKILL of descendant processes
     popen_kwargs = {}
@@ -192,9 +235,9 @@ def main():
         **popen_kwargs,
     )
 
-    # Start frontend dev server
+    # Start frontend (dev server, or preview of the production build)
     frontend_proc = subprocess.Popen(
-        ["npm", "run", "dev"],
+        frontend_command(args.prod),
         cwd=frontend_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -217,13 +260,17 @@ def main():
     backend_thread.start()
     frontend_thread.start()
 
-    # Wait for the frontend port (3000) to start accepting connections
-    print(f"{GRAY}[System]{RESET} Waiting for Vite dev server on port 3000...")
-    if wait_for_port(3000):
-        print(f"{GREEN}✓ Port 3000 is open! Launching default browser...{RESET}")
-        webbrowser.open("http://localhost:3000")
+    # Wait for the frontend port to start accepting connections
+    server = "production preview" if args.prod else "Vite dev server"
+    print(f"{GRAY}[System]{RESET} Waiting for {server} on port {FRONTEND_PORT}...")
+    if wait_for_port(FRONTEND_PORT):
+        print(f"{GREEN}✓ Port {FRONTEND_PORT} is open! Launching default browser...{RESET}")
+        webbrowser.open(f"http://localhost:{FRONTEND_PORT}")
     else:
-        print(f"{YELLOW}⚠️  Port 3000 did not open within timeout. Check console logs above.{RESET}")
+        print(
+            f"{YELLOW}⚠️  Port {FRONTEND_PORT} did not open within timeout. "
+            f"Check console logs above.{RESET}"
+        )
 
     # Main monitoring loop
     try:

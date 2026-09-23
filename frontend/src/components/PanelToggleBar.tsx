@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import type { PanelId } from '../hooks/useVisiblePanels';
 import styles from './TankView.module.css';
 
@@ -16,7 +18,9 @@ interface PanelToggleBarProps {
     onSelect: (id: PanelId) => void;
 }
 
-export function PanelToggleBar({ visible, onSelect }: PanelToggleBarProps) {
+// Memoized: TankView re-renders on every WebSocket payload, and these props
+// (panel state and a stable callback) change only when the user clicks.
+export const PanelToggleBar = memo(function PanelToggleBar({ visible, onSelect }: PanelToggleBarProps) {
     return (
         <div className={styles.panelToggleBar} role="toolbar" aria-label="Analysis workspace">
             <span className={styles.panelToggleLabel}>Analysis</span>
@@ -37,4 +41,4 @@ export function PanelToggleBar({ visible, onSelect }: PanelToggleBarProps) {
             })}
         </div>
     );
-}
+});
