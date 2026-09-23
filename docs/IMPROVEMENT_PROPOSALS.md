@@ -1745,7 +1745,12 @@ the pin. ~8s, in the `core` pre-PR shard, so CI enforces it on every PR.
   (spatial calls, genome serializations, bytes) count domain operations that
   refactoring cannot fool. Add more named counters as hot paths are found.
 
-### 13.5 Rolling energy windows are O(window) per stats call — `S` · ★★
+### 13.5 Rolling energy windows are O(window) per stats call — `S` · ★
+*Downgraded 2026-09-23:* 13.6 cut stats collection on the live path from 15 Hz
+to 6 Hz, and `selection_response_10k` (the one benchmark on the non-fast step
+path) now fast-steps, so this is worth ~0.4 ms per 6 Hz stats frame. Still
+correct to fix, no longer urgent. Original analysis:
+
 `EnergyTracker.get_recent_energy_breakdown`/`get_recent_energy_burn` re-sum up
 to 2,000 per-frame dicts on every call - ~27% of what remains of a broadcast
 build after 13.1, and ~8% of every frame on the non-fast `world.step()` path.
@@ -1788,9 +1793,14 @@ re-measured 2026-09-22: **P6** collision-candidate sorting (~6% of the
 `survival_5k` frame including real eating work), **P7** double spatial-grid
 maintenance (~1%). Each is now a `tools/perf_check.py` away from a provable
 verdict, and a `tools/cost_counters.py` re-pin away from being locked in.
-Also: `benchmarks/tank/selection_response_10k.py` steps with plain
-`world.step()` and so pays for full metrics every frame (~11% of frame on that
-path) - check whether its sampler needs them before switching it to fast step.
+
+**`selection_response_10k` fast-steps — SHIPPED (2026-09-23).** It stepped with
+plain `world.step()`, building per-frame metrics, events and a snapshot it then
+discarded (its sampler calls `world.get_stats()` itself). `tools/perf_check.py
+--benchmark benchmarks/tank/selection_response_10k.py`: trajectory IDENTICAL
+(score 112.43906360166058, 41 checkpoints), runtime **-21.6%** (131.89s ->
+103.40s, base 50810e4, quiet machine; an earlier pass with other load measured
+-22.5%). The earlier "~11%" estimate counted only the metrics.
 
 **P3 — SHIPPED (2026-09-23): poker proximity builds its graph among ready fish
 first.** Measured on the default tank: only **~1.9 of ~65 fish are
@@ -1817,6 +1827,21 @@ changes the 4,000-frame game count 1,257 -> 1,290.
   the live tank, not benchmark runtime.
 - The debug counter `groups_detected` now counts *ready* groups and is
   renamed `ready_groups_detected` (no readers outside the system).
+
+### 13.10 Smaller verified wins and the next candidates (2026-09-23)
+- **SHIPPED:** the engine's energy recorder resolved each entity's identity
+  twice per energy delta (`type_name()` then `stable_id()`, each a full
+  `get_identity()`); now once. Default-tank digests unchanged;
+  `*.calls_per_frame` -1.9% / -2.0%, re-pinned.
+- **Open, `S`:** `GeneticDiversityTracker.update` re-reads every fish's genome
+  traits each frame (~3% of the default-tank frame). Genomes are immutable
+  after creation, so a per-genome cache of the extracted values is exact -
+  but read `fish.species` live, since taxonomy can reclassify a fish. Do not
+  sample it every N frames instead: reproduction reads the diversity score
+  every frame, so that is a behavior change.
+- **Open, measure first:** the soccer league tick is ~5% of the default-tank
+  frame (1,500-frame cProfile, 2026-09-23); find how much of that is live match
+  simulation versus bookkeeping before touching it.
 
 ### 13.9 Frontend frame time is unmeasured — `M` · ★★
 Every number above is backend. Nobody has measured what the browser spends per
