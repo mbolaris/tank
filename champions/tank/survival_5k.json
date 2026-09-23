@@ -1,33 +1,33 @@
 {
   "benchmark_id": "tank/survival_5k",
-  "version": 4,
+  "version": 5,
   "champion": {
-    "score": 687.1077318101328,
+    "score": 843.143812685668,
     "seed": 42,
-    "timestamp": 1785946310.819574,
+    "timestamp": 1790186810.6678267,
     "metadata": {
       "frames": 5000,
-      "avg_energy": 11265.581083104998,
+      "avg_energy": 13123.312799007213,
       "avg_pop": 51.9708,
       "extinct": false,
       "samples": 5000,
       "max_generation": 4,
       "extinction_frames": 0,
-      "starvation_rate": 0.8632,
+      "starvation_rate": 0.6069,
       "score_valid": true,
       "score_invalid_reason": null,
-      "starvation_deaths": 164,
-      "total_deaths": 190,
+      "starvation_deaths": 88,
+      "total_deaths": 145,
       "death_causes": {
-        "starvation": 164,
-        "old_age": 25,
-        "predation": 1
+        "starvation": 88,
+        "old_age": 55,
+        "predation": 2
       },
-      "diversity_score": 0.3495,
-      "unique_algorithms": 26,
+      "diversity_score": 0.3443,
+      "unique_algorithms": 28,
       "final_fish_count": 60,
-      "final_food_count": 17,
-      "final_total_entities": 132,
+      "final_food_count": 48,
+      "final_total_entities": 182,
       "population_scope": "fish",
       "final_total_entities_role": "diagnostic_only"
     },
@@ -38,52 +38,52 @@
       123
     ],
     "scores": [
-      702.5775136245999,
-      749.4781982900204,
-      609.2674835157783
+      818.4348777775728,
+      864.9060637113743,
+      846.0904965680571
     ],
-    "mean": 687.1077318101328,
-    "min": 609.2674835157783,
-    "max": 749.4781982900204,
-    "stdev": 71.37399208686858,
+    "mean": 843.143812685668,
+    "min": 818.4348777775728,
+    "max": 864.9060637113743,
+    "stdev": 23.375307269649664,
     "n": 3,
     "per_seed": {
       "42": {
         "benchmark_id": "tank/survival_5k",
         "seed": 42,
-        "score": 702.5775136245999,
+        "score": 818.4348777775728,
         "score_breakdown": {
-          "avg_energy": 11265.581083104998,
+          "avg_energy": 13123.312799007213,
           "avg_pop": 51.9708,
-          "raw_score": 585.4812613538332,
+          "raw_score": 682.029064814644,
           "starvation_penalty": 1.0,
           "generation_multiplier": 1.2,
           "validity_gate": 1.0
         },
-        "runtime_seconds": 63.63433790206909,
+        "runtime_seconds": 50.61217141151428,
         "metadata": {
           "frames": 5000,
-          "avg_energy": 11265.581083104998,
+          "avg_energy": 13123.312799007213,
           "avg_pop": 51.9708,
           "extinct": false,
           "samples": 5000,
           "max_generation": 4,
           "extinction_frames": 0,
-          "starvation_rate": 0.8632,
+          "starvation_rate": 0.6069,
           "score_valid": true,
           "score_invalid_reason": null,
-          "starvation_deaths": 164,
-          "total_deaths": 190,
+          "starvation_deaths": 88,
+          "total_deaths": 145,
           "death_causes": {
-            "starvation": 164,
-            "old_age": 25,
-            "predation": 1
+            "starvation": 88,
+            "old_age": 55,
+            "predation": 2
           },
-          "diversity_score": 0.3495,
-          "unique_algorithms": 26,
+          "diversity_score": 0.3443,
+          "unique_algorithms": 28,
           "final_fish_count": 60,
-          "final_food_count": 17,
-          "final_total_entities": 132,
+          "final_food_count": 48,
+          "final_total_entities": 182,
           "population_scope": "fish",
           "final_total_entities_role": "diagnostic_only"
         }
@@ -91,38 +91,38 @@
       "7": {
         "benchmark_id": "tank/survival_5k",
         "seed": 7,
-        "score": 749.4781982900204,
+        "score": 864.9060637113743,
         "score_breakdown": {
-          "avg_energy": 12054.636164413942,
+          "avg_energy": 13911.182390927288,
           "avg_pop": 51.8112,
-          "raw_score": 624.5651652416836,
+          "raw_score": 720.7550530928119,
           "starvation_penalty": 1.0,
           "generation_multiplier": 1.2,
           "validity_gate": 1.0
         },
-        "runtime_seconds": 70.07619905471802,
+        "runtime_seconds": 50.62776827812195,
         "metadata": {
           "frames": 5000,
-          "avg_energy": 12054.636164413942,
+          "avg_energy": 13911.182390927288,
           "avg_pop": 51.8112,
           "extinct": false,
           "samples": 5000,
           "max_generation": 4,
           "extinction_frames": 0,
-          "starvation_rate": 0.8219,
+          "starvation_rate": 0.4141,
           "score_valid": true,
           "score_invalid_reason": null,
-          "starvation_deaths": 180,
-          "total_deaths": 219,
+          "starvation_deaths": 53,
+          "total_deaths": 128,
           "death_causes": {
-            "starvation": 180,
-            "old_age": 39
+            "starvation": 53,
+            "old_age": 75
           },
-          "diversity_score": 0.3296,
-          "unique_algorithms": 25,
+          "diversity_score": 0.2735,
+          "unique_algorithms": 17,
           "final_fish_count": 60,
-          "final_food_count": 43,
-          "final_total_entities": 189,
+          "final_food_count": 33,
+          "final_total_entities": 180,
           "population_scope": "fish",
           "final_total_entities_role": "diagnostic_only"
         }
@@ -130,39 +130,39 @@
       "123": {
         "benchmark_id": "tank/survival_5k",
         "seed": 123,
-        "score": 609.2674835157783,
+        "score": 846.0904965680571,
         "score_breakdown": {
-          "avg_energy": 9827.516248055977,
-          "avg_pop": 51.6634,
-          "raw_score": 507.72290292981523,
+          "avg_energy": 13576.844689936384,
+          "avg_pop": 51.9322,
+          "raw_score": 705.0754138067143,
           "starvation_penalty": 1.0,
           "generation_multiplier": 1.2,
           "validity_gate": 1.0
         },
-        "runtime_seconds": 71.1943793296814,
+        "runtime_seconds": 48.24840021133423,
         "metadata": {
           "frames": 5000,
-          "avg_energy": 9827.516248055977,
-          "avg_pop": 51.6634,
+          "avg_energy": 13576.844689936384,
+          "avg_pop": 51.9322,
           "extinct": false,
           "samples": 5000,
           "max_generation": 4,
           "extinction_frames": 0,
-          "starvation_rate": 0.948,
+          "starvation_rate": 0.6897,
           "score_valid": true,
           "score_invalid_reason": null,
-          "starvation_deaths": 310,
-          "total_deaths": 327,
+          "starvation_deaths": 120,
+          "total_deaths": 174,
           "death_causes": {
-            "starvation": 310,
-            "old_age": 16,
+            "starvation": 120,
+            "old_age": 53,
             "predation": 1
           },
-          "diversity_score": 0.2552,
-          "unique_algorithms": 14,
+          "diversity_score": 0.2039,
+          "unique_algorithms": 11,
           "final_fish_count": 60,
-          "final_food_count": 16,
-          "final_total_entities": 127,
+          "final_food_count": 18,
+          "final_total_entities": 122,
           "population_scope": "fish",
           "final_total_entities_role": "diagnostic_only"
         }
@@ -170,6 +170,178 @@
     }
   },
   "history": [
+    {
+      "score": 687.1077318101328,
+      "seed": 42,
+      "timestamp": 1785946310.819574,
+      "metadata": {
+        "frames": 5000,
+        "avg_energy": 11265.581083104998,
+        "avg_pop": 51.9708,
+        "extinct": false,
+        "samples": 5000,
+        "max_generation": 4,
+        "extinction_frames": 0,
+        "starvation_rate": 0.8632,
+        "score_valid": true,
+        "score_invalid_reason": null,
+        "starvation_deaths": 164,
+        "total_deaths": 190,
+        "death_causes": {
+          "starvation": 164,
+          "old_age": 25,
+          "predation": 1
+        },
+        "diversity_score": 0.3495,
+        "unique_algorithms": 26,
+        "final_fish_count": 60,
+        "final_food_count": 17,
+        "final_total_entities": 132,
+        "population_scope": "fish",
+        "final_total_entities_role": "diagnostic_only"
+      },
+      "config_hash": "a8e05e92b6ac3922",
+      "seeds": [
+        42,
+        7,
+        123
+      ],
+      "scores": [
+        702.5775136245999,
+        749.4781982900204,
+        609.2674835157783
+      ],
+      "mean": 687.1077318101328,
+      "min": 609.2674835157783,
+      "max": 749.4781982900204,
+      "stdev": 71.37399208686858,
+      "n": 3,
+      "per_seed": {
+        "42": {
+          "benchmark_id": "tank/survival_5k",
+          "seed": 42,
+          "score": 702.5775136245999,
+          "score_breakdown": {
+            "avg_energy": 11265.581083104998,
+            "avg_pop": 51.9708,
+            "raw_score": 585.4812613538332,
+            "starvation_penalty": 1.0,
+            "generation_multiplier": 1.2,
+            "validity_gate": 1.0
+          },
+          "runtime_seconds": 63.63433790206909,
+          "metadata": {
+            "frames": 5000,
+            "avg_energy": 11265.581083104998,
+            "avg_pop": 51.9708,
+            "extinct": false,
+            "samples": 5000,
+            "max_generation": 4,
+            "extinction_frames": 0,
+            "starvation_rate": 0.8632,
+            "score_valid": true,
+            "score_invalid_reason": null,
+            "starvation_deaths": 164,
+            "total_deaths": 190,
+            "death_causes": {
+              "starvation": 164,
+              "old_age": 25,
+              "predation": 1
+            },
+            "diversity_score": 0.3495,
+            "unique_algorithms": 26,
+            "final_fish_count": 60,
+            "final_food_count": 17,
+            "final_total_entities": 132,
+            "population_scope": "fish",
+            "final_total_entities_role": "diagnostic_only"
+          }
+        },
+        "7": {
+          "benchmark_id": "tank/survival_5k",
+          "seed": 7,
+          "score": 749.4781982900204,
+          "score_breakdown": {
+            "avg_energy": 12054.636164413942,
+            "avg_pop": 51.8112,
+            "raw_score": 624.5651652416836,
+            "starvation_penalty": 1.0,
+            "generation_multiplier": 1.2,
+            "validity_gate": 1.0
+          },
+          "runtime_seconds": 70.07619905471802,
+          "metadata": {
+            "frames": 5000,
+            "avg_energy": 12054.636164413942,
+            "avg_pop": 51.8112,
+            "extinct": false,
+            "samples": 5000,
+            "max_generation": 4,
+            "extinction_frames": 0,
+            "starvation_rate": 0.8219,
+            "score_valid": true,
+            "score_invalid_reason": null,
+            "starvation_deaths": 180,
+            "total_deaths": 219,
+            "death_causes": {
+              "starvation": 180,
+              "old_age": 39
+            },
+            "diversity_score": 0.3296,
+            "unique_algorithms": 25,
+            "final_fish_count": 60,
+            "final_food_count": 43,
+            "final_total_entities": 189,
+            "population_scope": "fish",
+            "final_total_entities_role": "diagnostic_only"
+          }
+        },
+        "123": {
+          "benchmark_id": "tank/survival_5k",
+          "seed": 123,
+          "score": 609.2674835157783,
+          "score_breakdown": {
+            "avg_energy": 9827.516248055977,
+            "avg_pop": 51.6634,
+            "raw_score": 507.72290292981523,
+            "starvation_penalty": 1.0,
+            "generation_multiplier": 1.2,
+            "validity_gate": 1.0
+          },
+          "runtime_seconds": 71.1943793296814,
+          "metadata": {
+            "frames": 5000,
+            "avg_energy": 9827.516248055977,
+            "avg_pop": 51.6634,
+            "extinct": false,
+            "samples": 5000,
+            "max_generation": 4,
+            "extinction_frames": 0,
+            "starvation_rate": 0.948,
+            "score_valid": true,
+            "score_invalid_reason": null,
+            "starvation_deaths": 310,
+            "total_deaths": 327,
+            "death_causes": {
+              "starvation": 310,
+              "old_age": 16,
+              "predation": 1
+            },
+            "diversity_score": 0.2552,
+            "unique_algorithms": 14,
+            "final_fish_count": 60,
+            "final_food_count": 16,
+            "final_total_entities": 127,
+            "population_scope": "fish",
+            "final_total_entities_role": "diagnostic_only"
+          }
+        }
+      },
+      "benchmark_id": "tank/survival_5k",
+      "retired_at": 1790186867.0814912,
+      "retired_reason": "Re-baselined: 4b55bcab ('Let a fish spend its own reserves before it starves') added _draw_on_reserves, letting a fish top back up to the starvation threshold out of its own overflow bank before it dies. That is a deliberate simulation-behavior change, and nothing re-baselined survival_5k with it, so verify-champions has been red since (seed 42 expected 702.5775, CI produces 818.4349). 5b1376d0 re-baselined ecosystem_health_10k but not this champion. The change is an improvement on every seed: the 3-seed mean moves 687.11 -> 843.14 (+22.7%), seed 42's starvation share of deaths falls 0.8632 -> 0.6069 and old-age deaths rise 25 -> 55. Values are CI's own canonical run (bench.yml run 35898122022, rebaseline-tank-champions job on master @ 3226dff4). The artifact could not be fetched from the authoring sandbox, so the record was transcribed from a Linux run of the same commit that matches CI exactly: seed 42 bit-for-bit against the full-precision record verify-champions printed on that run, and seeds 7 and 123 plus mean and stdev to the six decimals the rebaseline job logs. config_hash unchanged - code behavior only, not a config change.",
+      "version": 4
+    },
     {
       "score": 668.1194691441058,
       "seed": 42,
