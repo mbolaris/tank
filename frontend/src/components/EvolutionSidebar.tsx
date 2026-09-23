@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { MetricsHistory } from '../types/simulation';
 import { EvolutionHealthReadout } from './EvolutionHealthReadout';
 import { SkillProgressPanel } from './SkillProgressPanel';
@@ -18,7 +19,9 @@ interface EvolutionSidebarProps {
  * the same glance - health says the tank is alive, progress says whether that
  * life is going anywhere.
  */
-export function EvolutionSidebar({
+// Memoized: its props change only on user action, a new metrics sample or a
+// fish-count change, while TankView re-renders on every WebSocket payload.
+export const EvolutionSidebar = memo(function EvolutionSidebar({
     history,
     onOpenTrends,
     livePopulation,
@@ -34,4 +37,4 @@ export function EvolutionSidebar({
             <SkillProgressPanel worldId={worldId} />
         </div>
     );
-}
+});

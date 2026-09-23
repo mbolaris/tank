@@ -2,7 +2,7 @@
  * Control panel component with simulation controls
  */
 
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import type { Command } from '../types/simulation';
 import { Button, FoodIcon, FishIcon, PlayIcon, PauseIcon, FastForwardIcon, ResetIcon, EyeIcon, EyeOffIcon } from './ui';
 
@@ -16,7 +16,9 @@ interface ControlPanelProps {
     onToggleSoccer?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects, ...props }: ControlPanelProps & { showSoccer?: boolean, onToggleSoccer?: () => void }) {
+// Memoized: its props change only on user action, but TankView re-renders
+// on every WebSocket payload.
+export const ControlPanel = memo(function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects, ...props }: ControlPanelProps & { showSoccer?: boolean, onToggleSoccer?: () => void }) {
     const [isPaused, setIsPaused] = useState(false);
     const [isFastForward, setIsFastForward] = useState(false);
 
@@ -104,4 +106,4 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
             </div>
         </div>
     );
-}
+});

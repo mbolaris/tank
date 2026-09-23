@@ -76,7 +76,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "frontend/src/components/AutoEvaluateDisplay.tsx": 656,
     "frontend/src/components/EntityInspectorDrawer.tsx": 593,
     "frontend/src/components/TankNetworkMap.tsx": 725,
-    "frontend/src/components/TankView.tsx": 649,
+    "frontend/src/components/TankView.tsx": 634,
     "frontend/src/components/tank_tabs/TankPokerTab.tsx": 532,
     "frontend/src/components/tank_tabs/TankTrendsTab.tsx": 700,
     "frontend/src/renderers/petri/PetriTopDownRenderer.ts": 569,
@@ -86,7 +86,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     # half, period_frames, possession, ball_owner, sides_swapped) per §10.3.
     "frontend/src/types/simulation.ts": 961,
     "frontend/src/utils/plants/nectar.ts": 616,
-    "frontend/src/utils/renderer.ts": 792,
+    "frontend/src/utils/renderer.ts": 746,
     "tools/evolve.py": 554,
     "tools/validate_improvement.py": 566,
 }
