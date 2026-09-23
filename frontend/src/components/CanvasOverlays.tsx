@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { ConnectionStatus } from '../hooks/useWebSocket';
 import type { MetricsHistory } from '../types/simulation';
 import { CONNECTION_STATUS_DISPLAY } from '../utils/connectionStatusDisplay';
@@ -23,7 +24,9 @@ interface CanvasOverlaysProps {
  * Watch Mode) the compact evolution-health badge. Kept out of TankView so
  * canvas-overlay features don't keep growing an already-large component.
  */
-export function CanvasOverlays({
+// Memoized: its props change only on user action, a new metrics sample or a
+// fish-count change, while TankView re-renders on every WebSocket payload.
+export const CanvasOverlays = memo(function CanvasOverlays({
     connectionStatus,
     watchMode,
     uiMode,
@@ -67,4 +70,4 @@ export function CanvasOverlays({
             )}
         </>
     );
-}
+});

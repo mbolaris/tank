@@ -5,7 +5,6 @@ import {
     useCallback,
     useEffect,
     useMemo,
-    useRef,
     type ChangeEvent,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router';
@@ -16,6 +15,7 @@ import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceRecon
 import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { useWatchMode } from '../hooks/useWatchMode';
 import { useUiMode } from '../hooks/useUiMode';
+import { useTankSoccerToggle } from '../hooks/useTankSoccerToggle';
 import { Canvas } from './Canvas';
 import { SoccerArenaView } from './SoccerArenaView';
 import { arenaStateFromConnection } from './soccerArenaState';
@@ -76,21 +76,11 @@ export function TankView({ worldId }: TankViewProps) {
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
     const { watchMode, enterWatchMode, exitWatchMode } = useWatchMode();
-    const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
-    const userToggledSoccer = useRef(false);  // Track if user manually toggled
+    const toggleEffects = useCallback(() => setShowEffects((shown) => !shown), []);
+    const { showSoccer: effectiveShowSoccer, toggleSoccer } = useTankSoccerToggle(state?.tank_soccer_enabled, sendCommand);
     const { visible, toggle, showOnly, isVisible } = useVisiblePanels(['trends']);
     const { uiMode, selectMode, buildMode, buildKind, setBuildKind, buildSelectedObjectId, setBuildSelectedObjectId } =
         useUiMode({ watchMode, enterWatchMode, exitWatchMode, visibleCount: visible.length, showOnly, sendCommand });
-
-    // Sync showSoccer state from server on initial load and ongoing updates
-    useEffect(() => {
-        if (state?.tank_soccer_enabled !== undefined && !userToggledSoccer.current) {
-            setShowSoccer(state.tank_soccer_enabled);
-        }
-    }, [state?.tank_soccer_enabled]);
-
-    // Derive effective showSoccer: null (unknown) defaults to false until server confirms
-    const effectiveShowSoccer = showSoccer ?? false;
 
     // Plant energy input control
     const [plantEnergyInput, setPlantEnergyInput] = useState(0.5);
@@ -149,6 +139,9 @@ export function TankView({ worldId }: TankViewProps) {
         exitWatchMode();
         showOnly(id);
     }, [exitWatchMode, showOnly]);
+    // Stable identities, so the memoized overlays and sidebar skip payloads.
+    const openTrends = useCallback(() => openPanel('trends'), [openPanel]);
+    const openBoard = useCallback(() => openPanel('insights'), [openPanel]);
     const build = useBuildPlacement({ buildKind, setBuildKind, entities: liveEntities, sendCommand });
     const [directorEnabled, setDirectorEnabled] = useState(false);
     const handleBuildEntityClick = (entityId: number, entityType: string) => {
@@ -208,17 +201,9 @@ export function TankView({ worldId }: TankViewProps) {
                     isConnected={isConnected}
                     fastForwardEnabled={state?.stats?.fast_forward}
                     showEffects={showEffects}
-                    onToggleEffects={() => setShowEffects(!showEffects)}
+                    onToggleEffects={toggleEffects}
                     showSoccer={effectiveShowSoccer}
-                    onToggleSoccer={() => {
-                        userToggledSoccer.current = true;  // Mark as user-initiated
-                        const newValue = !effectiveShowSoccer;
-                        setShowSoccer(newValue);
-                        sendCommand({
-                            command: 'set_tank_soccer_enabled',
-                            data: { enabled: newValue },
-                        });
-                    }}
+                    onToggleSoccer={toggleSoccer}
                 />
 
                 <WorldModeSelector worldType={worldType} onChange={setWorldType} />
@@ -474,14 +459,14 @@ export function TankView({ worldId }: TankViewProps) {
                         uiMode={uiMode}
                         onSelectMode={selectMode}
                         worldId={effectiveWorldId}
-                        onOpenBoard={() => openPanel('insights')}
+                        onOpenBoard={openBoard}
                         metricsHistory={state?.metrics_history ?? null}
-                        onOpenTrends={() => openPanel('trends')}
+                        onOpenTrends={openTrends}
                         livePopulation={state?.stats?.fish_count ?? null}
                     />
                 </div>
                 {!watchMode && (
-                    <EvolutionSidebar history={state?.metrics_history ?? null} onOpenTrends={() => openPanel('trends')} livePopulation={state?.stats?.fish_count ?? null} worldId={effectiveWorldId} />
+                    <EvolutionSidebar history={state?.metrics_history ?? null} onOpenTrends={openTrends} livePopulation={state?.stats?.fish_count ?? null} worldId={effectiveWorldId} />
                 )}
             </div>
 

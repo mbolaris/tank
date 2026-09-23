@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import styles from './ModeSwitch.module.css';
 
 export type UiMode = 'watch' | 'build' | 'analyze';
@@ -14,7 +15,8 @@ const MODES: Array<{ id: UiMode; icon: string; label: string; title: string }> =
     { id: 'analyze', icon: '📊', label: 'Analyze', title: 'Analyze: open research panels' },
 ];
 
-export function ModeSwitch({ mode, onSelect }: ModeSwitchProps) {
+// Memoized: mode and onSelect change only on user action.
+export const ModeSwitch = memo(function ModeSwitch({ mode, onSelect }: ModeSwitchProps) {
     return (
         <div className={styles.switch} role="toolbar" aria-label="View mode">
             {MODES.map(({ id, icon, label, title }) => (
@@ -30,4 +32,4 @@ export function ModeSwitch({ mode, onSelect }: ModeSwitchProps) {
             ))}
         </div>
     );
-}
+});

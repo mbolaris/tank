@@ -1896,9 +1896,21 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
   (inherited from `server`), so everything downstream is unchanged. Verified
   by launching it and driving the page: live connection in 0.4s, no page
   errors.
-- **Remaining per-message React work in dev (~10 ms):** `ControlPanel`,
-  `EvolutionSidebar`, `ModeSwitch`, `CanvasOverlays` get inline callbacks from
-  `TankView`, so `memo` needs `useCallback` there first.
+- **Per-message React work in dev — SHIPPED (2026-09-23).** Was: `ControlPanel`,
+  `EvolutionSidebar`, `ModeSwitch`, `CanvasOverlays` re-rendered with every
+  payload, because `TankView` handed them inline callbacks. The soccer toggle
+  moved into `hooks/useTankSoccerToggle.ts`, the other callbacks became
+  `useCallback`s, and all four are `memo`. Measured by counting renders
+  against messages: each went from one render per message to ~0.02 (a render
+  only on a new metrics sample or fish-count change). React per message in
+  dev **10.7-12.2 -> 7.4-8.2 ms (~-31%)**, main-thread script 275-293 ->
+  226-240 ms/s, three interleaved A/B pairs against master.
+  `e2e/render-budget.spec.ts` counts real renders through a minimal React
+  DevTools hook and fails on any *wasted* render of the four - one where no
+  prop changed or only function props changed identity - so it holds however
+  loaded the backend is (a data-driven render is not counted). Master fails it
+  (ModeSwitch 16 wasted), and so does reintroducing a single inline callback
+  (EvolutionSidebar 10).
 - **Canvas food — SHIPPED (normal food and live plankton).** `renderFood`
   cost as much JS as all fish together (~22-25 ms/s each). Normal food's
   shadow + glow is now stamped from a per-(size, scale) sprite
