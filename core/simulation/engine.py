@@ -515,10 +515,9 @@ class SimulationEngine:
         """Return (entity_type, stable_id) using the identity provider when available."""
         if self._identity_provider is None:
             return entity.__class__.__name__.lower(), str(id(entity))
-        provider = self._identity_provider
-        if hasattr(provider, "type_name") and hasattr(provider, "stable_id"):
-            return provider.type_name(entity), provider.stable_id(entity)
-        return provider.get_identity(entity)
+        # One lookup: type_name() and stable_id() each resolve the full identity,
+        # and this runs for every energy delta of every entity.
+        return self._identity_provider.get_identity(entity)
 
     def _create_energy_recorder(self) -> Callable[[object, float, str, dict[str, object]], None]:
         """Create a recorder callback for energy delta tracking.
