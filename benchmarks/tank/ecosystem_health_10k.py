@@ -99,7 +99,7 @@ def run(
             fingerprint_callback(world, i + 1)
 
         if (i + 1) % SAMPLE_INTERVAL == 0:
-            stats = world.get_stats(include_distributions=False)
+            stats: dict[str, Any] = world.get_stats(include_distributions=False)
             # BUG FIX: Use fish_count, NOT len(world.entities_list) which
             # includes food, crabs, balls, goal zones, etc.
             pop = stats.get("fish_count", 0)
@@ -126,9 +126,9 @@ def run(
     runtime = time.time() - start_time
 
     # Final stats
-    stats = world.get_stats(include_distributions=True)
-    diversity_stats = stats.get("diversity_stats", {})
-    death_causes = stats.get("death_causes", {})
+    final_stats: dict[str, Any] = world.get_stats(include_distributions=True)
+    diversity_stats = final_stats.get("diversity_stats", {})
+    death_causes = final_stats.get("death_causes", {})
 
     total_deaths = sum(death_causes.values())
     starvation_deaths = death_causes.get("starvation", 0)
@@ -189,7 +189,7 @@ def run(
             "stability_bonus": round(stability_bonus, 4),
             "starvation_penalty": round(starvation_penalty, 4),
             "mean_population": round(mean_pop, 2) if population_samples else 0,
-            "final_population": stats.get("fish_count", 0),
+            "final_population": final_stats.get("fish_count", 0),
             "final_total_entities": len(world.entities_list),
             "population_scope": "fish",
             "final_total_entities_role": "diagnostic_only",

@@ -101,9 +101,11 @@ tank/
 - **Python 3.10+**: Modern type hints (`X | Y`, `list[str]`) used natively
 - **Formatting**: black (100 char line length), isort (black profile)
 - **Linting**: ruff with select rules (see pyproject.toml)
-- **Type checking**: `python -m mypy core/ backend/ tools/` — the scope CI's
-  `mypy` job and `tools/agent_gate.py` both use. Checking only `core/` passes
-  locally while CI fails on `tools/`.
+- **Type checking**: `python -m mypy core/ backend/ tools/ benchmarks/` — the
+  scope CI's `mypy` job and `tools/agent_gate.py` both use. Checking only
+  `core/` passes locally while CI fails on `tools/`; and before `benchmarks/`
+  was named explicitly, CI reported errors in benchmark modules reached by
+  import that a local run did not (how #961 merged with a red mypy job).
 - **Tests**: pytest with markers: `slow`, `integration`, `manual`, `core`
 - **Line length**: 100 characters (both black and ruff)
 - **No __pycache__**: Pre-commit hook prevents committing compiled artifacts
