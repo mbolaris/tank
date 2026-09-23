@@ -38,8 +38,8 @@ it has drifted. See the closing rule at the bottom of this file.
 **Best current starter picks:**
 
 - **Theme 13 (performance, 2026-09-22)** — the newest open queue, and the one
-  that speeds up every other item's loop. **13.4** (a deterministic cost
-  ratchet) is the highest-leverage pick; **13.5**, **13.6**, **13.7** and each
+  that speeds up every other item's loop. **13.4** (the cost ratchet) has
+  shipped, so every win below now gets locked in by lowering a pin; **13.5**, **13.6**, **13.7** and each
   **13.8** candidate are `S`-sized and provable with one
   `python tools/perf_check.py` run. This partly supersedes the "no pick-up-and-go
   infrastructure work" note below: those items are measured, small, and
@@ -1713,19 +1713,37 @@ profile. Also fixed: `main.py --profile-phases` printed all zeros because
 `apply_flat_config` dropped the key (the 2026-07 profile's instrumentation bug
 #1) - it now reports real phase shares.
 
-### 13.4 A deterministic cost ratchet — `M` · ★★★
+### 13.4 A deterministic cost ratchet — `M` · ★★★ — SHIPPED (2026-09-23)
 **The recursive-self-improvement lever.** Wall-clock cannot gate CI - it is
-noisy and machine-dependent - which is why nothing stops a PR from quietly
-making the engine 20% slower. *Operation counts* can: spatial queries per
-frame, genome serializations per broadcast, bytes per delta frame, and
-allocations of known-hot types are deterministic for a seed on a given
-platform. Pin them the way `LEGACY_MAX_LINES` pins file sizes: a test runs a
-short fixed-seed tank (and one broadcast sequence) with counters, and asserts
-each count is at or below its pin, with a small tolerance for cross-platform
-float drift (see 1.0). An agent that lands an optimization tightens the pin in
-the same PR; an agent that regresses one has to justify raising it. That turns
-"performance" from an occasional audit into a monotone ratchet the evolution
-loop climbs on its own. Start with the three counts 13.1/13.2 just moved.
+noisy and machine-dependent - which is why nothing stopped a PR from quietly
+making the engine slower. Work counts can. `tools/cost_counters.py` profiles
+three fixed-seed scenarios (the `survival_5k` config and the default tank, each
+seeded with 50 fish; and 20 live-loop broadcasts) and counts calls into the
+repo's own functions, spatial-grid calls, genome serializations per delta, and
+wire bytes. `tests/test_cost_ratchet.py` pins each one like `LEGACY_MAX_LINES`:
+a counter may not rise past its pin, and a win must be harvested by lowering
+the pin. ~8s, in the `core` pre-PR shard, so CI enforces it on every PR.
+
+*Measured, not assumed:*
+- **Deterministic across interpreters.** Every counter is identical on CPython
+  3.10 and 3.11 (the ratchet test passes on both), and the engine totals were
+  also identical on 3.12 and 3.13. Getting there took one fix: stdlib and
+  synthesized code (`<frozen abc>`, dataclass `__init__` from `<string>`) are
+  counted differently per version, and an early draft that let them in made
+  3.10 and 3.11 disagree by 1.6% on an identical trajectory.
+- **It catches the regression #960 fixed.** Re-introducing the eager genome
+  serialization fails the test: `broadcast.calls_per_delta` 1949.7 > pin
+  1300.1 (+50%), `broadcast.genome_serializations_per_delta` 10.2 > pin 0.1.
+  Run on the pre-#960 commit, the counters read 1939.2 calls per delta.
+- **Its known blind spot.** The `*.calls_per_frame` totals are a broad proxy
+  for interpreter work and can move the wrong way: #960's allocation-free
+  `select_food_target` made `survival_5k` 5% faster but *raised*
+  `benchmark_tank.calls_per_frame` 2.5% (15,223.5 -> 15,607.2), because it
+  swapped uncounted per-candidate dataclass constructors for counted helper
+  calls. A risen total is therefore a question, answered with
+  `tools/perf_check.py` timings and a reviewed re-pin; the named counters
+  (spatial calls, genome serializations, bytes) count domain operations that
+  refactoring cannot fool. Add more named counters as hot paths are found.
 
 ### 13.5 Rolling energy windows are O(window) per stats call — `S` · ★★
 `EnergyTracker.get_recent_energy_breakdown`/`get_recent_energy_burn` re-sum up
