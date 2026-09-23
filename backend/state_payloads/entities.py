@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -57,6 +58,20 @@ class EntitySnapshot:
     # Rendering metadata hints
     render_hint: dict[str, Any] | None = None
     taxonomy: dict[str, Any] | None = None
+    # Deferred producer for genome_data. A fish genome is the heaviest thing a
+    # snapshot carries, and only full-sync frames and newly added entities ever
+    # send it - a delta frame never does - so builders hand over a factory and
+    # the dict is only built when a payload actually needs it.
+    genome_data_factory: Callable[[], dict[str, Any]] | None = field(
+        default=None, repr=False, compare=False
+    )
+
+    def resolve_genome_data(self) -> dict[str, Any] | None:
+        """Return genome_data, building it from the deferred factory if needed."""
+        if self.genome_data is None and self.genome_data_factory is not None:
+            self.genome_data = self.genome_data_factory()
+            self.genome_data_factory = None
+        return self.genome_data
 
     def to_full_dict(self) -> dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -85,8 +100,9 @@ class EntitySnapshot:
             data["age"] = self.age
         if self.species is not None:
             data["species"] = self.species
-        if self.genome_data is not None:
-            data["genome_data"] = self.genome_data
+        genome_data = self.resolve_genome_data()
+        if genome_data is not None:
+            data["genome_data"] = genome_data
         if self.food_type is not None:
             data["food_type"] = self.food_type
         if self.plant_type is not None:

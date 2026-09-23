@@ -37,6 +37,13 @@ it has drifted. See the closing rule at the bottom of this file.
 
 **Best current starter picks:**
 
+- **Theme 13 (performance, 2026-09-22)** — the newest open queue, and the one
+  that speeds up every other item's loop. **13.4** (a deterministic cost
+  ratchet) is the highest-leverage pick; **13.5**, **13.6**, **13.7** and each
+  **13.8** candidate are `S`-sized and provable with one
+  `python tools/perf_check.py` run. This partly supersedes the "no pick-up-and-go
+  infrastructure work" note below: those items are measured, small, and
+  behavior-preserving by construction.
 - **8.1** — the ranking/leaderboard half is shipped (#912); the remaining
   `repro_reward_mode="credits"` semantics decision needs a maintainer call.
 - **1.0** — cross-machine determinism: the genetics mutation path is fixed
@@ -1643,6 +1650,126 @@ the soccer champion" is the headline figure for the transfer story. Score a
 shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 **module skill matrix** (which modules are good where). Sits beside
 `research/skill_history.jsonl` (Theme 11.5); never needs re-baselining.
+
+## Theme 13 — Performance as a measured, self-improving loop (2026-09)
+
+**Why this is a Theme, not a chore.** Git is the heredity mechanism here, and
+the generation time of that evolution is *benchmark wall-clock*: every agent
+proposal pays for `survival_5k`, `ecosystem_health_10k` and friends, locally and
+in CI, before selection can act on it. A faster engine is a faster Layer 1 loop.
+And in the live product, the sim thread's budget is shared with building every
+WebSocket frame - so the same work decides whether the tank feels alive.
+
+**Measured 2026-09-22** (4-core Linux container, seed 42; reproduce each number
+with the command given):
+
+| What | Number | Command |
+| --- | --- | --- |
+| `survival_5k` runtime | 54-62s across runs vs a 45s budget (10.9-12.4 ms/frame at 60 fish) | `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42` |
+| Default tank frame | 12.7 ms/frame at 86 fish | `python scripts/benchmark_performance.py --frames 3000 --warmup 500` |
+| Live broadcast build (per 15 Hz frame) | 5.8 ms -> **3.7 ms** after 13.1 | a `SimulationRunner` driven the way `backend/runner/loop.py` drives it, timing `state_publisher.get_state` |
+| Delta payload | ~52 KB (full sync ~320 KB, 90% of it fish entities) | same harness, `serialize_state` |
+
+The engine profile is now **flat** - no function above ~5% self time on the
+default tank; `score_food_candidates` was the top self-time function on the
+benchmark path before 13.2. The 2026-07 wins (P1 mutation contexts, P2 crab
+memo, P5 behavior-id cache - see [PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md))
+took the easy 30%. What remains is either many ~1-5% behavior-preserving wins
+or structural work, which is exactly why the tooling in 13.3 matters more than
+any single optimization: it makes each of those small wins cheap and *provably*
+safe.
+
+### 13.1 Serialize fish genomes only when a payload sends them — `S` · ★★★ — SHIPPED (2026-09-22)
+`TankSnapshotBuilder._enrich_fish` called `genome.to_dict()` (then deleted
+`trait_meta`, `poker_strategy` and behavior parameters from the result) for
+every fish on every broadcast - over half of the cost of building a frame -
+though a delta frame never sends `genome_data`. `EntitySnapshot` now takes a
+`genome_data_factory` that `to_full_dict()` resolves, so only full-sync frames
+and newly added fish pay for it. **Wire output byte-identical** (sha256 over 300
+consecutive serialized payloads, before and after), build time 5.8 -> 3.7 ms.
+Pinned by `tests/test_snapshot_lazy_genome.py`. **Layer 2**: backend only.
+
+### 13.2 Allocation-free `select_food_target` — `S` · ★★ — SHIPPED (2026-09-22)
+The per-fish, per-frame food choice built a frozen `FoodCandidateScore`
+dataclass (plus four `float()` tuples) for every food in range just to take the
+max. It now scores inline through the same `_food_desirability` helper
+`score_food_candidates` uses, same order, same tie-break.
+`tools/perf_check.py` verdict: trajectory IDENTICAL on `survival_5k` seed 42
+(score 818.4348777775728 both sides, 21 fingerprint checkpoints bit-equal);
+runtime -5.4% (54.39s -> 51.45s; an independent
+fingerprinted pass measured -5.3%). Pinned by a 300-case randomized equivalence test (exact ties
+included) in `tests/core/test_food_target_selection.py`.
+
+### 13.3 One command for "faster, and provably the same" — `S` · ★★★ — SHIPPED (2026-09-22)
+`python tools/perf_check.py [--base REF] [--benchmark PATH] [--repeats N]` runs
+a benchmark on a base ref (temporary git worktree) and on the working tree,
+records fingerprint streams on one pass and times unfingerprinted passes
+interleaved, and prints the speedup plus a **trajectory verdict**. Anything
+short of bit-identical (score *and* every exact checkpoint digest) exits 1 with
+the five-part divergence report from 1.0's tooling: that change is a behavior
+change and goes through champion validation. This replaces the by-hand
+"run --export-stats before and after and diff it" protocol in the 2026-07
+profile. Also fixed: `main.py --profile-phases` printed all zeros because
+`apply_flat_config` dropped the key (the 2026-07 profile's instrumentation bug
+#1) - it now reports real phase shares.
+
+### 13.4 A deterministic cost ratchet — `M` · ★★★
+**The recursive-self-improvement lever.** Wall-clock cannot gate CI - it is
+noisy and machine-dependent - which is why nothing stops a PR from quietly
+making the engine 20% slower. *Operation counts* can: spatial queries per
+frame, genome serializations per broadcast, bytes per delta frame, and
+allocations of known-hot types are deterministic for a seed on a given
+platform. Pin them the way `LEGACY_MAX_LINES` pins file sizes: a test runs a
+short fixed-seed tank (and one broadcast sequence) with counters, and asserts
+each count is at or below its pin, with a small tolerance for cross-platform
+float drift (see 1.0). An agent that lands an optimization tightens the pin in
+the same PR; an agent that regresses one has to justify raising it. That turns
+"performance" from an occasional audit into a monotone ratchet the evolution
+loop climbs on its own. Start with the three counts 13.1/13.2 just moved.
+
+### 13.5 Rolling energy windows are O(window) per stats call — `S` · ★★
+`EnergyTracker.get_recent_energy_breakdown`/`get_recent_energy_burn` re-sum up
+to 2,000 per-frame dicts on every call - ~27% of what remains of a broadcast
+build after 13.1, and ~8% of every frame on the non-fast `world.step()` path.
+The obvious fix (running sums updated on append/evict) changes the reported
+floats in the last ulp, so decide first: these are display-only stats (no
+system or benchmark score reads them - verified by grep 2026-09-22), and an
+exactly-rounded running sum (e.g. `fractions.Fraction` accumulators, ~20 ops
+per frame) would be both O(1) and *more* accurate than today's sequential sum.
+Treat as a reporting change: note it in the PR, and check `--export-stats`
+consumers.
+
+### 13.6 Stats at 15 Hz is more than anyone can read — `S` · ★★
+Every delta frame recomputes and ships the full stats block (`get_stats` is
+~45% of the post-13.1 build). Numbers on a panel changing 15 times a second are
+not information. Send stats every N frames (or when a sample lands) and have
+the frontend keep the last block when a delta omits it. Needs a small frontend
+change and a contract-test update (7.1); behavior-neutral for the sim.
+
+### 13.7 Benchmark runtime budgets have drifted — `S` · ★★
+`survival_5k` declares `EXPECTED_RUNTIME_SECONDS = 45` and ran 54-62s here.
+Either re-measure every budget on CI's runner and correct them, or make
+`run_bench` flag a run that exceeds its budget by >25% - a budget nobody
+enforces is the same rot this file's closing rules describe. Pair with 13.4:
+budgets catch wall-clock regressions coarsely, counts catch them precisely.
+
+### 13.8 The remaining 2026-07 candidates, re-ranked
+Still open from [PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md),
+re-measured on the default tank 2026-09-22: **P3** poker proximity graph
+rebuilt every frame (~5.6% of frame; the eligibility early-out is the
+trajectory-safe variant), **P6** collision-candidate sorting (~6% of the
+`survival_5k` frame including real eating work), **P7** double spatial-grid
+maintenance (~1%). Each is now a `tools/perf_check.py` away from a provable
+verdict. Also: `benchmarks/tank/selection_response_10k.py` steps with plain
+`world.step()` and so pays for full metrics every frame (~11% of frame on that
+path) - check whether its sampler needs them before switching it to fast step.
+
+### 13.9 Frontend frame time is unmeasured — `M` · ★★
+Every number above is backend. Nobody has measured what the browser spends per
+frame rendering ~100 fish plus fractal plants, or how often it drops frames.
+The Playwright path from 7.4 can record `requestAnimationFrame` intervals over
+a fixed-seed session; measure first, then decide whether the renderer (7.3's
+canvas trace makes changes provable) deserves a theme of its own.
 
 ---
 

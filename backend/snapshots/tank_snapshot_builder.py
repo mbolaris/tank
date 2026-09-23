@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from functools import partial
 from typing import Any
 
 from backend.state_payloads import EntitySnapshot
@@ -20,6 +21,21 @@ _TOPDOWN_PETRI_HINTS = {
     "crab": {"style": "petri", "sprite": "predator"},
     "castle": {"style": "petri", "sprite": "inert"},
 }
+
+
+def _broadcast_genome_dict(genome: Any) -> dict[str, Any]:
+    """Serialize a fish genome for the WebSocket broadcast.
+
+    Strips the heavy fields (~6-10KB per fish) that persistence and full
+    inspection need but 30fps visualization does not.
+    """
+    gd: dict[str, Any] = genome.to_dict()
+    gd.pop("trait_meta", None)
+    gd.pop("poker_strategy", None)
+    behavior = gd.get("behavior")
+    if isinstance(behavior, dict):
+        behavior.pop("parameters", None)
+    return gd
 
 
 class TankSnapshotBuilder:
@@ -216,24 +232,10 @@ class TankSnapshotBuilder:
             "type_specimen_id": getattr(fish, "type_specimen_id", None),
         }
 
-        # Render hints & Genome Data
+        # Genome data is only sent on full-sync frames and for newly added
+        # entities, so serialize it lazily - see EntitySnapshot.genome_data_factory.
         if hasattr(fish, "genome"):
-            gd = fish.genome.to_dict()
-
-            # OPTIMIZATION: Strip heavy fields for WebSocket broadcast (saves ~6-10KB per fish)
-            # These fields are needed for persistence/full inspection but not for 30fps visualization
-            if "trait_meta" in gd:
-                del gd["trait_meta"]
-            if "poker_strategy" in gd:
-                del gd["poker_strategy"]
-            if (
-                "behavior" in gd
-                and isinstance(gd["behavior"], dict)
-                and "parameters" in gd["behavior"]
-            ):
-                del gd["behavior"]["parameters"]
-
-            snapshot.genome_data = gd
+            snapshot.genome_data_factory = partial(_broadcast_genome_dict, fish.genome)
 
         genome = fish.genome
         snapshot.render_hint = {

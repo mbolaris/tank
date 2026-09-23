@@ -133,8 +133,8 @@ def test_score_food_candidates_returns_every_in_range_item_not_just_the_winner()
 
 def test_score_food_candidates_score_matches_select_food_target_winner():
     """score_food_candidates and select_food_target must never disagree on
-    what counts as the best candidate - select_food_target is a thin wrapper
-    over this list, not an independent computation."""
+    what counts as the best candidate - both score through the same
+    _food_desirability over the same in-range candidates."""
     near_poor = _food(10.0, 0.0, 65.0)
     far_rich = _food(30.0, 0.0, 120.0)
     fish = _fish_in([near_poor, far_rich])
@@ -161,3 +161,33 @@ def test_score_food_candidates_reports_position_and_velocity():
 
     assert candidate.position == (15.0, 0.0)
     assert candidate.velocity == (1.5, -2.0)
+
+
+def _reference_select(fish) -> object:
+    """select_food_target as it was written before it stopped allocating: the
+    max over score_food_candidates with the (x, y) tie-break."""
+    best, best_score, best_key = None, -1.0, None
+    for candidate in score_food_candidates(fish):
+        key = candidate.position
+        if candidate.score > best_score or (
+            candidate.score == best_score and (best_key is None or key < best_key)
+        ):
+            best_score, best, best_key = candidate.score, candidate.food, key
+    return best
+
+
+def test_select_food_target_matches_candidate_list_reference_including_ties():
+    """The allocation-free select_food_target must pick exactly what the
+    candidate-list formulation picks - trajectories depend on it - including
+    exact score ties (mirrored positions) and out-of-range items."""
+    import random
+
+    rng = random.Random(1234)
+    for _ in range(300):
+        foods = []
+        for _ in range(rng.randint(0, 9)):
+            x = rng.choice([-1.0, 1.0]) * rng.choice([5.0, 10.0, 40.0, 150.0, 900.0])
+            y = rng.choice([-1.0, 1.0]) * rng.choice([0.0, 5.0, 10.0, 40.0])
+            foods.append(_food(x, y, rng.choice([20.0, 65.0, 120.0])))
+        fish = _fish_in(foods, energy_ratio=rng.choice([0.1, 0.5, 0.9]))
+        assert select_food_target(fish) is _reference_select(fish)

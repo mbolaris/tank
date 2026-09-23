@@ -51,7 +51,6 @@ from core.config.server import (
     SOCCER_LADDER_EVAL_ENABLED,
     SOCCER_LADDER_EVAL_INTERVAL_FRAMES,
 )
-
 from core.config.soccer import (
     SOCCER_EVALUATOR_DURATION_FRAMES,
     SOCCER_EVALUATOR_ENABLED,
@@ -334,6 +333,9 @@ class SimulationConfig:
         # Headless mode
         if "headless" in config_dict:
             cfg.headless = bool(config_dict["headless"])
+        # Instrumentation only: phase timers never change what the simulation does.
+        if "profile_phases" in config_dict:
+            cfg.profile_phases = bool(config_dict["profile_phases"])
 
         # Display
         display_map = {

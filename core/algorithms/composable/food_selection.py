@@ -115,13 +115,12 @@ class FoodCandidateScore:
     score: float
 
 
-def score_food_candidates(fish: Fish) -> list[FoodCandidateScore]:
-    """Score every food item within detection/chase range.
+def _foods_in_range(fish: Fish) -> tuple[list[Food], float, float, float]:
+    """Return (nearby food, fish x, fish y, max distance squared) for scoring.
 
-    See ``select_food_target`` for the desirability formula this applies.
-    Returns every in-range candidate (not just the best) in iteration order;
-    ``select_food_target`` is a thin wrapper that picks the max from this list,
-    so the two can never disagree on what "value" means.
+    The spatial query and range cap shared by ``score_food_candidates`` and
+    ``select_food_target``; callers still apply the exact ``max_distance_sq``
+    cut, since the query radius is a rounded-up bound.
     """
     env = fish.environment
 
@@ -129,17 +128,30 @@ def score_food_candidates(fish: Fish) -> list[FoodCandidateScore]:
     detection_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
     chase_distance = _food_chase_distance_for_energy(fish)
     max_distance = min(detection_distance, chase_distance)
-    max_distance_sq = max_distance * max_distance
 
     if hasattr(env, "nearby_resources"):
         nearby = cast(list[Food], env.nearby_resources(fish, int(max_distance) + 1))
     else:
         nearby = cast(list[Food], env.nearby_agents_by_type(fish, int(max_distance) + 1, Food))
-    if not nearby:
-        return []
+    return nearby, fish.pos.x, fish.pos.y, max_distance * max_distance
 
-    fish_x = fish.pos.x
-    fish_y = fish.pos.y
+
+def _food_desirability(food: Food, dist_sq: float) -> float:
+    """Distance-discounted desirability; see ``select_food_target``."""
+    get_energy = getattr(food, "get_energy_value", None)
+    energy = get_energy() if callable(get_energy) else 1.0
+    return energy / (1.0 + FOOD_QUALITY_DISTANCE_WEIGHT * math.sqrt(dist_sq))
+
+
+def score_food_candidates(fish: Fish) -> list[FoodCandidateScore]:
+    """Score every food item within detection/chase range.
+
+    See ``select_food_target`` for the desirability formula this applies.
+    Returns every in-range candidate (not just the best) in iteration order.
+    ``select_food_target`` walks the same candidates with the same
+    ``_food_desirability``, so the two can never disagree on what "value" means.
+    """
+    nearby, fish_x, fish_y, max_distance_sq = _foods_in_range(fish)
     candidates: list[FoodCandidateScore] = []
 
     for food in nearby:
@@ -149,17 +161,12 @@ def score_food_candidates(fish: Fish) -> list[FoodCandidateScore]:
         if dist_sq > max_distance_sq:
             continue
 
-        get_energy = getattr(food, "get_energy_value", None)
-        energy = get_energy() if callable(get_energy) else 1.0
-        distance = math.sqrt(dist_sq)
-        score = energy / (1.0 + FOOD_QUALITY_DISTANCE_WEIGHT * distance)
-
         candidates.append(
             FoodCandidateScore(
                 food=food,
                 position=(float(food.pos.x), float(food.pos.y)),
                 velocity=(float(food.vel.x), float(food.vel.y)),
-                score=score,
+                score=_food_desirability(food, dist_sq),
             )
         )
 
@@ -184,18 +191,34 @@ def select_food_target(fish: Fish) -> Food | None:
     Determinism: basic float arithmetic only (``sqrt`` is correctly rounded in
     IEEE-754), with an explicit ``(pos.x, pos.y)`` tie-break so the choice never
     depends on spatial-query iteration order.
+
+    This runs for most fish on most frames, so it scores candidates inline
+    rather than building the ``FoodCandidateScore`` list
+    ``score_food_candidates`` returns - same candidates, same order, same
+    arithmetic, no per-candidate allocation.
     """
+    nearby, fish_x, fish_y, max_distance_sq = _foods_in_range(fish)
     best: Food | None = None
     best_score = -1.0
     best_key: tuple[float, float] | None = None
 
-    for candidate in score_food_candidates(fish):
-        key = candidate.position
-        if candidate.score > best_score or (
-            candidate.score == best_score and (best_key is None or key < best_key)
-        ):
-            best_score = candidate.score
-            best = candidate.food
-            best_key = key
+    for food in nearby:
+        pos = food.pos
+        dx = pos.x - fish_x
+        dy = pos.y - fish_y
+        dist_sq = dx * dx + dy * dy
+        if dist_sq > max_distance_sq:
+            continue
+
+        score = _food_desirability(food, dist_sq)
+        if score > best_score:
+            best_score = score
+            best = food
+            best_key = (float(pos.x), float(pos.y))
+        elif score == best_score:
+            key = (float(pos.x), float(pos.y))
+            if best_key is None or key < best_key:
+                best = food
+                best_key = key
 
     return best

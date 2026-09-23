@@ -18,6 +18,14 @@ determinism risk of each.
 > `record_diversity_sample`) from the now-lazy isolation scan (safe to defer,
 > since it's a pure/memoizable function). See the mutation_controller.py diff
 > for the actual implementation. P3/P4/P6/P7 remain open.
+>
+> **Status update (2026-09-22):** superseded as the live backlog by
+> [IMPROVEMENT_PROPOSALS.md Theme 13](IMPROVEMENT_PROPOSALS.md), which
+> re-measures the tree, re-ranks P3/P6/P7, and adds the live-broadcast path
+> this profile could not measure. Instrumentation bug #1 below
+> (`--profile-phases` printing zeros) is fixed. The "before and after
+> `--export-stats`" protocol in *Validation protocol* is now one command:
+> `python tools/perf_check.py` (bit-identical trajectory verdict + speedup).
 
 ## Method
 
