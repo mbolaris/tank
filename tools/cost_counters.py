@@ -60,6 +60,7 @@ MEASURED_FRAMES = 100
 BROADCAST_WARMUP_FRAMES = 150
 MEASURED_BROADCASTS = 20
 GENOME_TO_DICT = "core/genetics/genome_codec.py:genome_to_dict"
+INVARIANTS_ENV = "TANK_ENFORCE_MUTATION_INVARIANTS"
 
 
 def _repo_relative(filename: str) -> str | None:
@@ -172,16 +173,26 @@ def _broadcast_counters() -> dict[str, float]:
 
 
 def measure_costs() -> dict[str, float]:
-    """Every ratcheted counter, keyed as in ``tests/test_cost_ratchet.py::COST_PINS``."""
-    benchmark_config = dict(_survival_world_config(), initial_fish_count=INITIAL_FISH)
-    bench_calls, bench_spatial = _engine_counters(benchmark_config)
-    full_calls, _ = _engine_counters({"headless": True, "initial_fish_count": INITIAL_FISH})
-    return {
-        "benchmark_tank.calls_per_frame": bench_calls,
-        "benchmark_tank.spatial_calls_per_frame": bench_spatial,
-        "default_tank.calls_per_frame": full_calls,
-        **_broadcast_counters(),
-    }
+    """Every ratcheted counter, keyed as in ``tests/test_cost_ratchet.py::COST_PINS``.
+
+    Measures the production configuration: the test suite's conftest enables
+    mutation-invariant checks (``TANK_ENFORCE_MUTATION_INVARIANTS``), which add
+    work a real run never does, so they are switched off while measuring.
+    """
+    saved = os.environ.pop(INVARIANTS_ENV, None)
+    try:
+        benchmark_config = dict(_survival_world_config(), initial_fish_count=INITIAL_FISH)
+        bench_calls, bench_spatial = _engine_counters(benchmark_config)
+        full_calls, _ = _engine_counters({"headless": True, "initial_fish_count": INITIAL_FISH})
+        return {
+            "benchmark_tank.calls_per_frame": bench_calls,
+            "benchmark_tank.spatial_calls_per_frame": bench_spatial,
+            "default_tank.calls_per_frame": full_calls,
+            **_broadcast_counters(),
+        }
+    finally:
+        if saved is not None:
+            os.environ[INVARIANTS_ENV] = saved
 
 
 def main() -> int:
