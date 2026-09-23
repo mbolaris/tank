@@ -65,6 +65,7 @@ def main() -> None:
                 "core",
                 "backend",
                 "tools",
+                "benchmarks",
             ),
             "Mypy type check",
         ),

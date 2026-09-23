@@ -158,7 +158,7 @@ def run(
     runtime = time.time() - start_time
 
     # Final stats snapshot for score breakdown
-    final_stats = world.get_stats(include_distributions=False)
+    final_stats: dict[str, Any] = world.get_stats(include_distributions=False)
     death_causes = final_stats.get("death_causes", {})
     total_deaths = sum(death_causes.values())
     starvation_deaths = death_causes.get("starvation", 0)

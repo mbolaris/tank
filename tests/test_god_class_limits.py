@@ -86,7 +86,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     # half, period_frames, possession, ball_owner, sides_swapped) per §10.3.
     "frontend/src/types/simulation.ts": 961,
     "frontend/src/utils/plants/nectar.ts": 616,
-    "frontend/src/utils/renderer.ts": 824,
+    "frontend/src/utils/renderer.ts": 792,
     "tools/evolve.py": 554,
     "tools/validate_improvement.py": 566,
 }

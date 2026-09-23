@@ -28,9 +28,15 @@ export function selectionNeedsReconciliation(
  */
 export function useEntityPresenceReconciliation(
     entities: EntityData[],
-    selectedEntityId: number | null,
-    selectedEntityMissing: boolean,
-    reconcileEntities: (entityIds: number[]) => void
+    {
+        selectedEntityId,
+        selectedEntityMissing,
+        reconcileEntities,
+    }: {
+        selectedEntityId: number | null;
+        selectedEntityMissing: boolean;
+        reconcileEntities: (entityIds: number[]) => void;
+    }
 ) {
     useEffect(() => {
         if (!selectionNeedsReconciliation(entities, selectedEntityId, selectedEntityMissing)) return;

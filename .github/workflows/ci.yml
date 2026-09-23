@@ -112,7 +112,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .[dev]
     - name: Type check with mypy
-      run: python -m mypy core/ backend/ tools/
+      run: python -m mypy core/ backend/ tools/ benchmarks/
 
   pre-pr-gate:
     # Thin aggregator: combines shard coverage and enforces the floor. Kept as
