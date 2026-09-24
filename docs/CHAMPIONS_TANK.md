@@ -1,8 +1,12 @@
 # Champions Tank — a standing arena for the best of the best
 
-> **Status:** Proposed design (2026-09-24). Nothing here is built yet. §13 lists
-> the delivery plan one PR at a time, starting with a noise study (A0) that fixes
-> the numbers this document only estimates.
+> **Status:** Proposed design (2026-09-24). **The A0 noise study has run (§13.1).
+> It passes its pre-registered gate only in the larger arena, and it shows that
+> four parts of this design do not work as written:** the taxonomy cannot define
+> a champion species, a 60-fish arena is winner-take-all, only the top 3–4 of
+> 10 houses can be told apart, and the champion depends on the arena's size.
+> §13.2 lists what changes before A1. Sections 4–6 below are the original
+> proposal and have not yet been revised.
 >
 > **Layer:** Layer 2. This adds a new ruler and a new heredity channel. Keep it
 > in separate PRs from Layer 1 algorithm changes, per `CLAUDE.md`.
@@ -448,6 +452,88 @@ Secondary readouts, reported but not gating: Kendall's W across seeds,
 split-half rank reliability, per-house survival rate, and the admission margin
 and resolvable-pair fraction at 3, 5 and 10 seeds. The same rule is applied
 separately to the cap-120 variant (10 founders per house).
+
+### 13.1 A0 results (2026-09-24)
+
+Everything below reproduces from the committed tools and artifacts in
+`research/arena/`:
+
+```bash
+python tools/arena_noise_study.py capture --seeds 1-10 --frames 30000 --out research/arena/roster_a0.json
+python tools/arena_noise_study.py melee --roster research/arena/roster_a0.json --seeds 1001-1020 --out research/arena/melee_cap60.json
+python tools/arena_noise_study.py melee --roster research/arena/roster_a0.json --seeds 1001-1020 \
+    --copies 2 --max-population 120 --out research/arena/melee_cap120.json
+python tools/arena_noise_study.py analyze research/arena/melee_cap60.json   # and melee_cap120.json
+python tools/arena_noise_study.py pairwise --roster research/arena/roster_a0.json \
+    --pairs 0:1,1:2,2:3,3:4,4:9,9:5,5:8,8:7,7:6 --seeds 1001-1006 --out research/arena/pairwise_cap60.json
+python tools/arena_noise_study.py analyze-pairwise research/arena/pairwise_cap60.json
+```
+
+**Roster.** 10 evolving tanks (`survival_5k` world, seeds 1–10, 30,000 frames,
+generations 15–19). From each, the seed pack of its largest living taxon. The
+harness checks held in every match: all births were exact copies of a parent
+(5,681 at cap 60, 28,001 at cap 120), no emergency spawns, and no fish outside
+the houses.
+
+**Pre-registered gate.**
+
+| Arm | ICC(1) | Permutation p | Verdict | Split-half rank ρ | Kendall's W | Houses alive at end (median) |
+|---|---:|---:|---|---:|---:|---:|
+| Cap 60, 5 founders per house | 0.31 | 0.0005 | proceed with more seeds | 0.71 | 0.13 | 2 of 10 |
+| Cap 120, 10 founders per house | **0.64** | 0.0005 | **proceed** | 0.89 | 0.28 | 4 of 10 |
+
+**Findings beyond the gate** (exploratory; none of these was pre-registered):
+
+1. **The taxonomy cannot define a champion species.** After 30,000 frames each
+   tank of 60 fish holds **49–59 living taxa**. The largest holds 1–6 fish, and
+   8 of the 10 leaders are still provisional. The likely cause, read from the
+   code but not measured: 30% of a newborn's membership distance is measured
+   to its taxon's fixed founding profile, so ordinary drift keeps starting new
+   taxa. §4's eligibility ("an established taxon") and §6's same-species
+   distance (`join_threshold` 0.15) both assume a species concept this
+   population does not have.
+2. **A 60-fish arena is winner-take-all.** By frame 12,000 a median of 2 houses
+   is alive, and one or two usually hold nearly the whole tank. Eight of the
+   10 houses survive in only 0–20% of seeds. A roster of 10 cannot coexist
+   there, and §6's "beat the weakest incumbent" compares a challenger against a
+   pile of ties at zero. Other readouts did not rescue it: survival time scored
+   ICC 0.10. Earlier share windows scored ICC 0.19–0.30, below the registered
+   9,000–12,000 window's 0.31. The 1,000–3,000 window ranked the top more
+   consistently (split-half 0.83) but separated no more pairs.
+3. **Only the top of the ranking resolves.** Even at cap 120, only 36% of house
+   pairs differ by more than the 5-seed admission margin (0.13 share), and 38%
+   at 10 seeds. That fraction barely grows with more seeds, so the lower-ranked
+   houses really are close to each other, not merely noisy. About 3–4 of the
+   10 houses are separable.
+4. **Head-to-head matches do not fix it (cap 60).** The 9 pairs of
+   adjacent-ranked houses, 6 seeds each: 2 pairs are decided 6–0, and the rest
+   split 3–3 or 4–2. Mean majority agreement is 0.65, which is what 6 fair coin
+   flips give (0.656). A 2-house tank ends close to all-or-nothing (SD of the
+   share difference 0.70).
+5. **The champion depends on the arena.** House rankings at cap 60 and cap 120
+   agree with Spearman ρ = **0.19**. The cap-60 winner (house 0) is 5th at cap
+   120, and the cap-60 third place is last. Cap and founders per house changed
+   together, and the thermostat holds total energy fixed, so density,
+   per-fish scarcity and founding size are confounded. Either way, "best" is a
+   property of a house in a particular arena, not of the house alone.
+
+**Compute.** Cap-60 matches took 135–211 s of CPU each; cap-120 matches
+236–417 s.
+
+### 13.2 What A0 changes
+
+| Design element | Change |
+|---|---|
+| Arena size (§5) | **Cap 120 with 10 founders per house** is the baseline. It is the only arm that passed the gate. A challenge costs about 5 CPU-minutes per seed. |
+| Champion unit (§4) | Drop "established taxon". Use a **lineage**: descendants of one ancestor, from `LineageTracker`. Alternatively, cluster genomes at a threshold calibrated on this data, not the taxonomy's 0.15. |
+| Admission (§6) | Replace "beat the weakest incumbent" with a **rating** from standings over ≥10 seeds, and admit only on a margin (0.09 share at 10 seeds, cap 120). The seat-level ordering is real only for the top 3–4 houses, so either shrink the roster to about 5 seats or treat seats below the separable top as a tied pool. |
+| Crowding (§6) | Needs a distance that means "same lineage" (see champion unit). The taxonomy threshold is unusable here. |
+| Definition of best (§5, §9) | Pick deliberately: one pinned arena, or a champion that must rank well in **several** arena sizes (a generalist). A0 shows the choice changes who wins. |
+| Head-to-head format | Not adopted. It resolves no better than the melee. |
+
+Next step: revise §4–§6 along these lines. Then run a short confirmatory
+study on a fresh roster before building A1. It should pre-register the cap-120
+rating rule, and use lineage-based packs and at least 10 seeds.
 
 ---
 

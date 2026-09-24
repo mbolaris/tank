@@ -45,7 +45,7 @@ def test_exchangeable_houses_read_as_noise():
     assert decomposition["icc1"] < 0.2
     assert kendalls_w(shares) < 0.2
     assert permutation_p_value(shares, 500, random.Random(0)) > 0.01
-    assert verdict({"variance": decomposition, "permutation_p": 0.5}) == "redesign"
+    assert verdict(decomposition["icc1"], 0.5) == "redesign"
 
 
 def test_paired_difference_sd_ignores_shared_seed_effects():
@@ -86,7 +86,7 @@ def test_select_seed_pack_keeps_small_taxa_whole():
     ],
 )
 def test_verdict_applies_pre_registered_thresholds(icc, p, expected):
-    assert verdict({"variance": {"icc1": icc}, "permutation_p": p}) == expected
+    assert verdict(icc, p) == expected
 
 
 def test_sign_test_matches_exact_binomial():

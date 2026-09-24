@@ -15,8 +15,7 @@ from __future__ import annotations
 
 import math
 import random
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from collections.abc import Callable, Sequence
 
 Matrix = Sequence[Sequence[float]]
 
@@ -221,7 +220,9 @@ def sign_test_p(wins: int, losses: int) -> float:
     return float(min(1.0, 2 * tail))
 
 
-def summarize_pair(first_shares: Sequence[float], second_shares: Sequence[float]) -> dict[str, Any]:
+def summarize_pair(
+    first_shares: Sequence[float], second_shares: Sequence[float]
+) -> dict[str, float]:
     """Head-to-head readout for one pair of houses over matched seeds."""
     diffs = [a - b for a, b in zip(first_shares, second_shares, strict=True)]
     wins = sum(d > 0 for d in diffs)
@@ -248,14 +249,16 @@ def summarize_shares(
     permutations: int = 2000,
     rng_seed: int = 0,
     admission_seeds: Sequence[int] = (3, 5, 10),
-) -> dict[str, Any]:
-    """Every A0 statistic for one arena configuration."""
+) -> dict[str, object]:
+    """Every A0 statistic for one arena configuration, with its verdict."""
     decomposition = variance_decomposition(shares)
     paired_sd = paired_difference_sd(shares)
+    p_value = permutation_p_value(shares, permutations, random.Random(rng_seed))
     seeds = len(shares[0])
     return {
+        "verdict": verdict(decomposition["icc1"], p_value),
         "variance": decomposition,
-        "permutation_p": permutation_p_value(shares, permutations, random.Random(rng_seed)),
+        "permutation_p": p_value,
         "kendalls_w": kendalls_w(shares),
         "split_half_spearman": split_half_reliability(shares),
         "paired_difference_sd": paired_sd,
@@ -268,8 +271,8 @@ def summarize_shares(
     }
 
 
-def verdict(summary: Mapping[str, Any]) -> str:
-    """Apply the pre-registered A0 decision rule to one configuration's summary.
+def verdict(icc: float, p: float) -> str:
+    """Apply the pre-registered A0 decision rule to one configuration.
 
     Registered in docs/CHAMPIONS_TANK.md before any match ran:
     proceed if house identity explains at least half the single-match
@@ -277,8 +280,6 @@ def verdict(summary: Mapping[str, Any]) -> str:
     houses (p < 0.01); proceed with more seeds if 0.2 <= ICC < 0.5; redesign
     if ICC < 0.2 or p >= 0.01.
     """
-    icc = float(summary["variance"]["icc1"])
-    p = float(summary["permutation_p"])
     if p >= 0.01 or icc < 0.2:
         return "redesign"
     if icc < 0.5:

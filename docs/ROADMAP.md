@@ -67,7 +67,8 @@ frontier instead of from scratch. Progress is claimed only against frozen
 references (a Gen-0 community and ancestral rosters), never from arena
 standings alone.
 
-- [ ] A0 Noise study: fix seed count, admission margin, and arena size before building
+- [x] A0 Noise study (2026-09-24): passes only at cap 120; forces changes to the champion unit, admission rule and roster size ([results](CHAMPIONS_TANK.md#131-a0-results-2026-09-24))
+- [ ] Revise the design per A0, then run a pre-registered confirmatory study on a fresh roster
 - [ ] A1 Seed packs: capture, strict load, round trip
 - [ ] A2 Arena runner (houses isolated by `species`, mutation off, emergency spawns off)
 - [ ] A3 Founding tournament, `roster.json`, `verify-arena` CI job

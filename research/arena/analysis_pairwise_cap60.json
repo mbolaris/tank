@@ -1,0 +1,134 @@
+{
+ "kind": "arena_pairwise_a0_analysis",
+ "pairs": [
+  {
+   "pair": [
+    0,
+    1
+   ],
+   "seeds": 6,
+   "wins": 3,
+   "losses": 3,
+   "ties": 0,
+   "mean_difference": -0.07054074074073825,
+   "difference_sd": 0.7213577595873478,
+   "majority_agreement": 0.5,
+   "sign_test_p": 1.0
+  },
+  {
+   "pair": [
+    1,
+    2
+   ],
+   "seeds": 6,
+   "wins": 4,
+   "losses": 2,
+   "ties": 0,
+   "mean_difference": 0.1884814814814816,
+   "difference_sd": 0.7750062325409802,
+   "majority_agreement": 0.6666666666666666,
+   "sign_test_p": 0.6875
+  },
+  {
+   "pair": [
+    2,
+    3
+   ],
+   "seeds": 6,
+   "wins": 6,
+   "losses": 0,
+   "ties": 0,
+   "mean_difference": 0.6330629629629593,
+   "difference_sd": 0.32425371704975386,
+   "majority_agreement": 1.0,
+   "sign_test_p": 0.03125
+  },
+  {
+   "pair": [
+    3,
+    4
+   ],
+   "seeds": 6,
+   "wins": 3,
+   "losses": 3,
+   "ties": 0,
+   "mean_difference": -0.09240185185186406,
+   "difference_sd": 0.7981587493761914,
+   "majority_agreement": 0.5,
+   "sign_test_p": 1.0
+  },
+  {
+   "pair": [
+    4,
+    9
+   ],
+   "seeds": 6,
+   "wins": 3,
+   "losses": 3,
+   "ties": 0,
+   "mean_difference": 0.38012962962962754,
+   "difference_sd": 0.7026833663300086,
+   "majority_agreement": 0.5,
+   "sign_test_p": 1.0
+  },
+  {
+   "pair": [
+    9,
+    5
+   ],
+   "seeds": 6,
+   "wins": 4,
+   "losses": 2,
+   "ties": 0,
+   "mean_difference": 0.06193888888889607,
+   "difference_sd": 0.8161276106266349,
+   "majority_agreement": 0.6666666666666666,
+   "sign_test_p": 0.6875
+  },
+  {
+   "pair": [
+    5,
+    8
+   ],
+   "seeds": 6,
+   "wins": 3,
+   "losses": 3,
+   "ties": 0,
+   "mean_difference": 0.23375925925924804,
+   "difference_sd": 0.8128376837850707,
+   "majority_agreement": 0.5,
+   "sign_test_p": 1.0
+  },
+  {
+   "pair": [
+    8,
+    7
+   ],
+   "seeds": 6,
+   "wins": 6,
+   "losses": 0,
+   "ties": 0,
+   "mean_difference": 0.8267018518518467,
+   "difference_sd": 0.1551143411660947,
+   "majority_agreement": 1.0,
+   "sign_test_p": 0.03125
+  },
+  {
+   "pair": [
+    7,
+    6
+   ],
+   "seeds": 6,
+   "wins": 3,
+   "losses": 3,
+   "ties": 0,
+   "mean_difference": -0.0009444444444487073,
+   "difference_sd": 0.8306295407552697,
+   "majority_agreement": 0.5,
+   "sign_test_p": 1.0
+  }
+ ],
+ "mean_majority_agreement": 0.6481481481481481,
+ "pooled_difference_sd": 0.6990254106934553,
+ "pairs_significant_at_0.05": 2
+}

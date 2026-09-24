@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from benchmarks.tank.survival_5k import WORLD_CONFIG
-from core.research.arena_noise import select_seed_pack, summarize_pair, summarize_shares, verdict
+from core.research.arena_noise import select_seed_pack, summarize_pair, summarize_shares
 
 MATCH_FRAMES = 12_000
 SETTLE_START = 9_000
@@ -413,18 +413,24 @@ def cmd_analyze_pairwise(args: argparse.Namespace) -> None:
     by_pair: dict[tuple[int, int], list[dict[str, Any]]] = {}
     for m in data["matches"]:
         by_pair.setdefault((m["pair"][0], m["pair"][1]), []).append(m)
-    pairs = []
-    for (a, b), matches in by_pair.items():
-        summary = summarize_pair(
+    summaries = {
+        pair: summarize_pair(
             [m["settled_share"][0] for m in matches], [m["settled_share"][1] for m in matches]
         )
-        pairs.append({"pair": [a, b], "seeds": len(matches), **summary})
-    decided = [p for p in pairs if p["wins"] + p["losses"]]
+        for pair, matches in by_pair.items()
+    }
+    decided = [s for s in summaries.values() if s["wins"] + s["losses"]]
     report = {
-        "pairs": pairs,
-        "mean_majority_agreement": sum(p["majority_agreement"] for p in decided) / len(decided),
-        "pooled_difference_sd": (sum(p["difference_sd"] ** 2 for p in pairs) / len(pairs)) ** 0.5,
-        "pairs_significant_at_0.05": sum(p["sign_test_p"] < 0.05 for p in pairs),
+        "pairs": [
+            {"pair": list(pair), "seeds": len(by_pair[pair]), **summary}
+            for pair, summary in summaries.items()
+        ],
+        "mean_majority_agreement": sum(s["majority_agreement"] for s in decided) / len(decided),
+        "pooled_difference_sd": (
+            sum(s["difference_sd"] ** 2 for s in summaries.values()) / len(summaries)
+        )
+        ** 0.5,
+        "pairs_significant_at_0.05": sum(s["sign_test_p"] < 0.05 for s in summaries.values()),
     }
     print(json.dumps(report, indent=1))
     if args.out:
@@ -438,7 +444,6 @@ def cmd_analyze(args: argparse.Namespace) -> None:
     shares = [[m["settled_share"][h] for m in matches] for h in range(houses)]
     alive = [[m["alive"][h] for m in matches] for h in range(houses)]
     summary = summarize_shares(shares, alive)
-    summary["verdict"] = verdict(summary)
     summary["checks"] = {
         "foreign_species": sorted({s for m in matches for s in m["foreign_species"]}),
         "total_clonal_births": sum(m["clonal_births"] for m in matches),
