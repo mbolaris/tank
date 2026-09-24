@@ -10,7 +10,9 @@ from core.research.arena_noise import (
     paired_difference_sd,
     permutation_p_value,
     select_seed_pack,
+    sign_test_p,
     split_half_reliability,
+    summarize_pair,
     variance_decomposition,
     verdict,
 )
@@ -85,3 +87,17 @@ def test_select_seed_pack_keeps_small_taxa_whole():
 )
 def test_verdict_applies_pre_registered_thresholds(icc, p, expected):
     assert verdict({"variance": {"icc1": icc}, "permutation_p": p}) == expected
+
+
+def test_sign_test_matches_exact_binomial():
+    assert sign_test_p(6, 0) == pytest.approx(2 / 64)
+    assert sign_test_p(3, 3) == pytest.approx(1.0)
+    assert sign_test_p(0, 0) == 1.0
+
+
+def test_summarize_pair_counts_wins_and_ties():
+    summary = summarize_pair([0.9, 0.6, 0.0, 0.7], [0.1, 0.4, 0.0, 0.3])
+
+    assert (summary["wins"], summary["losses"], summary["ties"]) == (3, 0, 1)
+    assert summary["majority_agreement"] == 1.0
+    assert summary["mean_difference"] == pytest.approx(0.35)

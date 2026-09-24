@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from benchmarks.tank.survival_5k import WORLD_CONFIG
-from core.research.arena_noise import select_seed_pack, summarize_shares, verdict
+from core.research.arena_noise import select_seed_pack, summarize_pair, summarize_shares, verdict
 
 MATCH_FRAMES = 12_000
 SETTLE_START = 9_000
@@ -370,6 +370,67 @@ def cmd_melee(args: argparse.Namespace) -> None:
     )
 
 
+def _parse_pairs(raw: str) -> list[tuple[int, int]]:
+    pairs = []
+    for item in raw.split(","):
+        a, b = item.split(":")
+        pairs.append((int(a), int(b)))
+    return pairs
+
+
+def cmd_pairwise(args: argparse.Namespace) -> None:
+    """Head-to-head matches: two houses per tank, same seeds for every pair."""
+    roster = json.loads(Path(args.roster).read_text())
+    packs = [h["seed_pack"] for h in roster["houses"]]
+    pairs = _parse_pairs(args.pairs)
+    seeds = parse_seeds(args.seeds)
+    kwargs: dict[str, Any] = {"copies": args.copies, "max_population": args.max_population}
+    jobs = [([packs[a], packs[b]], s, kwargs) for a, b in pairs for s in seeds]
+    with ProcessPoolExecutor(max_workers=args.workers) as pool:
+        results = list(pool.map(_match_job, jobs))
+    matches = []
+    for (a, b), result in zip([p for p in pairs for _ in seeds], results, strict=True):
+        result["pair"] = [a, b]
+        matches.append(result)
+        print(
+            f"{a} vs {b} seed {result['seed']}: "
+            f"{result['settled_share'][0]:.2f} / {result['settled_share'][1]:.2f}",
+            file=sys.stderr,
+        )
+    _write(
+        args.out,
+        {
+            "kind": "arena_pairwise_a0",
+            "roster": args.roster,
+            "config": {**kwargs, "frames": MATCH_FRAMES, "settle_start": SETTLE_START},
+            "matches": matches,
+        },
+    )
+
+
+def cmd_analyze_pairwise(args: argparse.Namespace) -> None:
+    data = json.loads(Path(args.pairwise).read_text())
+    by_pair: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    for m in data["matches"]:
+        by_pair.setdefault((m["pair"][0], m["pair"][1]), []).append(m)
+    pairs = []
+    for (a, b), matches in by_pair.items():
+        summary = summarize_pair(
+            [m["settled_share"][0] for m in matches], [m["settled_share"][1] for m in matches]
+        )
+        pairs.append({"pair": [a, b], "seeds": len(matches), **summary})
+    decided = [p for p in pairs if p["wins"] + p["losses"]]
+    report = {
+        "pairs": pairs,
+        "mean_majority_agreement": sum(p["majority_agreement"] for p in decided) / len(decided),
+        "pooled_difference_sd": (sum(p["difference_sd"] ** 2 for p in pairs) / len(pairs)) ** 0.5,
+        "pairs_significant_at_0.05": sum(p["sign_test_p"] < 0.05 for p in pairs),
+    }
+    print(json.dumps(report, indent=1))
+    if args.out:
+        _write(args.out, {"kind": "arena_pairwise_a0_analysis", **report})
+
+
 def cmd_analyze(args: argparse.Namespace) -> None:
     melee = json.loads(Path(args.melee).read_text())
     matches = melee["matches"]
@@ -410,6 +471,21 @@ def main() -> None:
     mel.add_argument("--workers", type=int, default=4)
     mel.add_argument("--out", required=True)
     mel.set_defaults(func=cmd_melee)
+
+    pw = sub.add_parser("pairwise", help="Head-to-head matches between pairs of houses")
+    pw.add_argument("--roster", required=True)
+    pw.add_argument("--pairs", required=True, help='e.g. "0:1,1:2"')
+    pw.add_argument("--seeds", default="1001-1006")
+    pw.add_argument("--copies", type=int, default=1)
+    pw.add_argument("--max-population", type=int, default=60)
+    pw.add_argument("--workers", type=int, default=4)
+    pw.add_argument("--out", required=True)
+    pw.set_defaults(func=cmd_pairwise)
+
+    apw = sub.add_parser("analyze-pairwise", help="Summarize head-to-head consistency")
+    apw.add_argument("pairwise")
+    apw.add_argument("--out")
+    apw.set_defaults(func=cmd_analyze_pairwise)
 
     ana = sub.add_parser("analyze", help="Apply the pre-registered A0 decision rule")
     ana.add_argument("melee")

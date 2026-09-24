@@ -211,6 +211,36 @@ def resolvable_pair_fraction(shares: Matrix, seeds: int, z: float = 1.645) -> fl
     return sum(pairs) / len(pairs) if pairs else 0.0
 
 
+def sign_test_p(wins: int, losses: int) -> float:
+    """Exact two-sided binomial sign test for ``wins`` vs ``losses`` (ties dropped)."""
+    n = wins + losses
+    if n == 0:
+        return 1.0
+    k = min(wins, losses)
+    tail = sum(math.comb(n, i) for i in range(k + 1)) / float(2**n)
+    return float(min(1.0, 2 * tail))
+
+
+def summarize_pair(first_shares: Sequence[float], second_shares: Sequence[float]) -> dict[str, Any]:
+    """Head-to-head readout for one pair of houses over matched seeds."""
+    diffs = [a - b for a, b in zip(first_shares, second_shares, strict=True)]
+    wins = sum(d > 0 for d in diffs)
+    losses = sum(d < 0 for d in diffs)
+    n = len(diffs)
+    mean = sum(diffs) / n
+    sd = math.sqrt(sum((d - mean) ** 2 for d in diffs) / (n - 1)) if n > 1 else 0.0
+    decided = wins + losses
+    return {
+        "wins": wins,
+        "losses": losses,
+        "ties": n - decided,
+        "mean_difference": mean,
+        "difference_sd": sd,
+        "majority_agreement": max(wins, losses) / decided if decided else 0.0,
+        "sign_test_p": sign_test_p(wins, losses),
+    }
+
+
 def summarize_shares(
     shares: Matrix,
     alive: Sequence[Sequence[bool]],
