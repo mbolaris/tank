@@ -50,6 +50,33 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 
 ---
 
+## Proposed Track: Champions Tank (September 2026)
+
+*Design: [CHAMPIONS_TANK.md](CHAMPIONS_TANK.md). Status: proposed, not yet built.*
+
+Every tank run today starts from random genomes, reaches single-digit
+generations, and throws its fish away, so in-world evolution never compounds
+across runs. The Champions Tank adds a **standing roster of 10 champion
+species** (5-genome seed packs in `champions/arena/`, landed by PR and
+re-verified by CI). A challenger species is dropped rare into a tank holding
+all 10 champions. If it survives and outlasts the weakest champion, or the
+champion of its own species, it takes that seat, and the displaced champion
+retires to a Hall of Fame. **Nursery runs** seeded from champion stock plus
+random genomes feed new candidates back in, so the search restarts from the
+frontier instead of from scratch. Progress is claimed only against frozen
+references (a Gen-0 community and ancestral rosters), never from arena
+standings alone.
+
+- [ ] A0 Noise study: fix seed count, admission margin, and arena size before building
+- [ ] A1 Seed packs: capture, strict load, round trip
+- [ ] A2 Arena runner (houses isolated by `species`, mutation off, emergency spawns off)
+- [ ] A3 Founding tournament, `roster.json`, `verify-arena` CI job
+- [ ] A4 Nursery runs, Scout auto-export, qualifier queue
+- [ ] A5 Progress rulers: Gen-0 invasion, ancestral-roster melee, cycling detector
+- [ ] A6 UI: Champions Tank view, Nominate button, story events
+
+---
+
 ## Near-Term Goals (Evolution Loop MVP)
 
 **Priority 1: Establish the evolutionary backbone. No new features until this is complete.**
@@ -303,4 +330,4 @@ and a bit-identical trajectory verdict in one command.
 
 ---
 
-*Last updated: July 2026*
+*Last updated: September 2026*
