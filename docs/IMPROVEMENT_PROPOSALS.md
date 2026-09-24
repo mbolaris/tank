@@ -1960,6 +1960,68 @@ interleaved A/B runs, and pause other worlds so the message rate holds steady.
   path agents may not edit. `benchmarks/` is in the scope in `ci.yml`,
   `tools/agent_gate.py` and CLAUDE.md.
 
+### 13.11 One process, one GIL: the live server's CPU budget — `M` · ★★★ — first fix SHIPPED (2026-09-24)
+
+*Symptom* (a maintainer's two long-running worlds, both near the 100-fish
+cap): both worlds' `update` time doubled at the same moment with unchanged fish
+counts (~15 -> 35-57 ms), fps fell from 30 to 16-22 for minutes at a time, and
+once a browser connected every broadcast logged `SLOW get=72-817ms
+send=69-451ms`.
+
+*Diagnosis.* No single world is slow: one world at the cap steps in ~14 ms
+here (`update` in the status line), and a delta snapshot costs ~3 ms to build
+(50 KB; a full sync is ~406 KB). But every world steps in its own thread of
+one Python process, so all of them, the event loop, the broadcasters and every
+background job share one GIL - one core of Python. Two capped worlds already
+need ~0.85 of it, so any other CPU-bound thread tips the process over. The one
+that did: the **Skill Observatory**, which every 300 s re-scores every living
+fish of every world on 8 foraging-gym seeds in a worker *thread*. That is
+~0.85 s of pure Python per genome, **~55-60 s per world per refresh**, and its
+genome cache almost never hits - after 9,000 frames (5 min) 83 of 83
+controllers in a seed-42 tank were new. Two worlds: a CPU-bound thread busy
+~40% of the time.
+
+*Fix* (`backend/skill_evaluation_service.py`): snapshot evaluations run in a
+single spawned worker process (`TANK_SKILL_EVAL_SUBPROCESS=0` keeps the
+thread). The snapshot was already an isolated copy captured under the world
+lock, so the evaluator needed no change; it pickles in 9 ms (547 KB). The
+worker ignores SIGINT - a Ctrl+C reaches the whole process group, and a
+worker's `KeyboardInterrupt` came back through the future into the event loop
+and cut the server's graceful shutdown short - and `stop()` terminates it
+rather than waiting out a minute-long evaluation. If the worker dies, that
+refresh keeps the last result and the next one starts a fresh worker (no
+thread fallback: that is the contention being removed).
+
+*Measured* (two live worlds stepping at the cap's cost, an observatory refresh
+of an 80-fish tank running throughout, broadcaster at 15 Hz; three runs each):
+
+| | world fps | broadcaster `get` p99 | event-loop lag p99 | broadcasts / 40 s |
+|---|---|---|---|---|
+| no observatory | 25-28 / 30 | 69-75 ms | 23-29 ms | 458-466 |
+| observatory in a thread (before) | 22-23 / 20-24 | 131-144 ms | 48-78 ms | 313-324 |
+| observatory in a process (after) | 26-28 / 29-30 | 68-92 ms | 22-37 ms | 448-457 |
+
+*Tried and rejected* (measured, not guessed - do not re-try blind):
+- **A FIFO lock for `runner.lock`.** When a world falls behind, the loop
+  releases the lock and re-takes it at once; in a bare `with lock: work` loop a
+  reader waited up to 153-379 ms with `threading.Lock` and never more than one
+  step (19 ms) with a ticket lock. But on the real server (Linux, three capped
+  worlds, five runs) it changed nothing and cost ~1 fps. The `get=817ms` above
+  came from Windows, where re-acquire barging may be worse - worth measuring
+  there before shipping.
+- **`sys.setswitchinterval(0.001)`** (default 5 ms). Halves event-loop lag
+  and delivers 10-20% more broadcasts under overload, but costs ~10% of world
+  fps (28.5 -> 25-26) through finer GIL slicing. It moves time between the
+  simulation and the UI rather than creating any.
+- **Pacing the poker evolution benchmark.** It is not the culprit: each hand
+  is ~0.3 ms of CPU followed by a 1 ms sleep, so it uses ~23% of a core, and
+  running it continuously beside two capped worlds left both at 30 fps.
+
+*Next.* The remaining lever is structural: worlds that together need more than
+one core cannot all run at 30 fps in one process. Per-world processes would
+scale with cores; until then every ms cut from a capped world's step (13.4's
+ratchet) is headroom for the next world.
+
 ---
 
 ## Shipped
