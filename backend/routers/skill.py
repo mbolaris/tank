@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -77,15 +78,20 @@ def setup_router(
         """Return the aggregated foraging gym summary across versioned seeds."""
         return JSONResponse(compute_foraging_gym_summary())
 
-    # The background worker (asyncio.to_thread) must never touch live
-    # simulation state - build_observatory_snapshot captures everything it
-    # needs synchronously first, on this coroutine's own thread, and
-    # evaluate_observatory_snapshot then runs as a pure function of that
-    # immutable snapshot. See backend.skill_observatory for both.
+    # The background worker must never touch live simulation state -
+    # build_observatory_snapshot captures everything it needs synchronously
+    # first, on this coroutine's own thread, and evaluate_observatory_snapshot
+    # then runs as a pure function of that immutable snapshot (see
+    # backend.skill_observatory for both). That is also what lets it run in a
+    # separate process, off the GIL the live worlds need;
+    # TANK_SKILL_EVAL_SUBPROCESS=0 keeps it in a thread instead.
     evaluation_service.set_snapshot_builder(
         functools.partial(build_observatory_snapshot, world_manager)
     )
-    evaluation_service.set_evaluator(evaluate_observatory_snapshot)
+    evaluation_service.set_evaluator(
+        evaluate_observatory_snapshot,
+        in_subprocess=os.getenv("TANK_SKILL_EVAL_SUBPROCESS", "1").strip() != "0",
+    )
 
     # Foraging has no live snapshot stream of its own, so the progress service
     # retains each completed observatory evaluation as one measurement.

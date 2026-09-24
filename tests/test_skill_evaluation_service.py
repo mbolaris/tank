@@ -170,3 +170,124 @@ async def test_run_loop_refreshes_worlds_sequentially_not_concurrently() -> None
     assert service.get_latest("tank-a") is not None
     assert service.get_latest("tank-b") is not None
     assert service.get_latest("tank-c") is not None
+
+
+# --- Process-isolated evaluation -------------------------------------------
+# The Observatory's evaluation is ~60 s of pure Python per world per refresh;
+# in a thread it shares one GIL with every live world. These evaluators are
+# module-level so a spawned worker process can import them by name.
+
+
+def _report_process(snapshot: dict[str, object]) -> dict[str, object]:
+    import os
+
+    return {"status": "success", "pid": os.getpid(), "snapshot": snapshot}
+
+
+def _die_in_worker_process(snapshot: dict[str, object]) -> dict[str, object]:
+    import multiprocessing
+    import os
+
+    if multiprocessing.parent_process() is not None:
+        os._exit(1)  # simulate the worker being killed mid-evaluation
+    return {"status": "success", "pid": os.getpid(), "snapshot": snapshot}
+
+
+def _report_process_slowly(snapshot: "_MarkedSnapshot") -> dict[str, object]:
+    import time
+
+    Path(snapshot.started_marker).touch()  # the worker is initialized and evaluating
+    time.sleep(1.0)
+    return _report_process(snapshot)  # type: ignore[arg-type]
+
+
+class _Snapshot:
+    """Not a dict, so the service hands it to the evaluator."""
+
+    def __init__(self, world_id: str) -> None:
+        self.world_id = world_id
+
+
+class _MarkedSnapshot(_Snapshot):
+    def __init__(self, world_id: str, started_marker: str) -> None:
+        super().__init__(world_id)
+        self.started_marker = started_marker
+
+
+def _service_with(evaluator, snapshot_builder=_Snapshot) -> SkillEvaluationService:  # type: ignore[no-untyped-def]
+    service = SkillEvaluationService(_WorldManager("tank-a"))
+    service.set_snapshot_builder(snapshot_builder)
+    service.set_evaluator(evaluator, in_subprocess=True)
+    return service
+
+
+@pytest.mark.asyncio
+async def test_snapshot_evaluation_can_run_in_a_separate_process() -> None:
+    import os
+
+    service = _service_with(_report_process)
+    try:
+        result = await service.refresh_world("tank-a")
+        assert result is not None
+        assert result["pid"] != os.getpid()
+        assert result["snapshot"].world_id == "tank-a"  # type: ignore[attr-defined]
+        pool = service._process_pool
+        assert pool is not None
+        workers = list(pool._processes.values())  # type: ignore[attr-defined]
+    finally:
+        await service.stop()
+    assert service._process_pool is None
+    for worker in workers:
+        worker.join(timeout=10)
+        assert not worker.is_alive(), "stop() must not leave the worker running"
+
+
+@pytest.mark.asyncio
+async def test_a_dead_worker_is_replaced_at_the_next_refresh() -> None:
+    import os
+
+    service = _service_with(_die_in_worker_process)
+    try:
+        # The worker dies mid-evaluation: keep the last result (none yet) and
+        # do not fall back to a thread, which would reintroduce the contention.
+        assert await service.refresh_world("tank-a") is None
+        assert service._process_pool is None
+
+        service.set_evaluator(_report_process, in_subprocess=True)
+        result = await service.refresh_world("tank-a")
+        assert result is not None
+        assert result["pid"] != os.getpid()
+    finally:
+        await service.stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    not hasattr(__import__("signal"), "SIGINT") or __import__("os").name == "nt",
+    reason="POSIX signal delivery",
+)
+async def test_ctrl_c_reaching_the_worker_does_not_escape_into_the_server(tmp_path: Path) -> None:
+    """A terminal Ctrl+C reaches the whole process group; the worker must
+    leave shutdown to the server instead of raising KeyboardInterrupt back
+    through the future into the event loop."""
+    import os
+    import signal
+
+    marker = tmp_path / "started"
+    service = _service_with(
+        _report_process_slowly, lambda world_id: _MarkedSnapshot(world_id, str(marker))
+    )
+    try:
+        refresh = asyncio.create_task(service.refresh_world("tank-a"))
+        for _ in range(400):  # wait until the evaluation is under way
+            if marker.exists():
+                break
+            await asyncio.sleep(0.05)
+        assert marker.exists(), "the worker never started the evaluation"
+        workers = list(service._process_pool._processes.values())  # type: ignore[union-attr]
+        os.kill(workers[0].pid, signal.SIGINT)
+        result = await refresh
+        assert result is not None
+        assert result["pid"] == workers[0].pid
+    finally:
+        await service.stop()
