@@ -6,8 +6,8 @@ import random
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.poker.betting.actions import BettingAction
 from core.deterministic_random import normal
+from core.poker.betting.actions import BettingAction
 
 
 @dataclass
@@ -75,6 +75,14 @@ class PokerStrategyAlgorithm:
             get_all_poker_strategies,
             get_random_poker_strategy,
         )
+
+        # Composable strategies carry their sub-behaviors and learned state in
+        # their own codec and are not in the monolithic strategy map below;
+        # without this dispatch every evolved poker genome decoded as a default.
+        if data.get("type") == "ComposablePokerStrategy":
+            from core.poker.strategy.composable import ComposablePokerStrategy
+
+            return ComposablePokerStrategy.from_dict(data)
 
         strategy_id = data.get("strategy_id")
         if not isinstance(strategy_id, str) or not strategy_id:

@@ -159,6 +159,24 @@ def test_dormant_behavior_graph_round_trip_without_affecting_default_payload():
     assert restored.behavioral.behavior_graph.value == genome.behavioral.behavior_graph.value
 
 
+def test_genome_round_trip_preserves_composable_poker_strategy():
+    """A decoded genome must keep its own poker strategy, not a default one.
+
+    The codec used to route composable poker payloads through the monolithic
+    strategy map, which does not know them, so every evolved poker strategy
+    decoded as the same default "adaptive" strategy.
+    """
+    rng = random.Random(7)
+    for _ in range(25):
+        genome = Genome.random(use_algorithm=True, rng=rng)
+        encoded = genome.to_dict()
+        assert encoded["poker_strategy"]["type"] == "ComposablePokerStrategy"
+
+        restored = Genome.from_dict(encoded, rng=random.Random(0))
+
+        assert restored.to_dict() == encoded
+
+
 def test_malformed_behavior_payload_keeps_default_behavior():
     """Malformed persisted behavior data should not block genome loading."""
     rng = random.Random(457)
