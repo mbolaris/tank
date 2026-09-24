@@ -431,6 +431,24 @@ on it.
 After A5, record the outcome in the [EVOLVABILITY.md](EVOLVABILITY.md) §5
 graveyard either way.
 
+### A0 decision rule (pre-registered 2026-09-24, before any match ran)
+
+Unit: `settled_share[house][seed]` from symmetric 10-house melees (5 founders
+each, clonal, no emergency spawns, 12,000 frames, settle window 9,000–12,000),
+on 20 match seeds disjoint from the capture seeds. Statistics live in
+`core/research/arena_noise.py`; the driver is `tools/arena_noise_study.py`.
+
+| Outcome | Condition |
+|---|---|
+| **Proceed** | ICC(1) ≥ 0.5 (house identity explains at least half of single-match share variance) **and** within-seed label-permutation p < 0.01 |
+| **Proceed with more seeds** | 0.2 ≤ ICC(1) < 0.5 and p < 0.01. Set \|S\| from the paired-difference SD so the admission margin stays useful. |
+| **Redesign** | ICC(1) < 0.2 or p ≥ 0.01. House shares are mostly seed luck, and no share-based admission rule can work as specified. |
+
+Secondary readouts, reported but not gating: Kendall's W across seeds,
+split-half rank reliability, per-house survival rate, and the admission margin
+and resolvable-pair fraction at 3, 5 and 10 seeds. The same rule is applied
+separately to the cap-120 variant (10 founders per house).
+
 ---
 
 ## 14. Risks and open questions
