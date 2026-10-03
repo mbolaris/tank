@@ -214,11 +214,11 @@ list would have rebuilt them.
   Anchor reef/grotto to left/right habitat zones (matching
   `core/tank_objects.py`'s `DEFAULT_TANK_LAYOUT`) and keep the center corridor
   clear for soccer and general swim traffic.
-- [ ] **Reorganize the control bar by purpose.** ~9 controls (Add Food, Spawn
-  Fish, Pause, Fast, Reset, Hide HUD, Soccer toggle, World select, Plant
-  Energy) currently sit at equal visual weight. Group by Simulation / World
-  actions / Modes / Advanced, and de-emphasize Reset specifically since it's
-  destructive and shouldn't read the same as Pause.
+- [x] **Reorganize the control bar by purpose.** World actions, Simulation,
+  and View are labeled groups; the world-view selector joins the View group.
+  Plant Energy and Reset world sit under a closed Advanced disclosure, so
+  reset no longer competes with Pause. Groups and advanced controls wrap on
+  mobile, and Soccer has a visible text label (2026-10-03).
 
 ## Someday / stretch goal
 

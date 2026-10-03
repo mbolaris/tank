@@ -37,7 +37,7 @@ import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
 import { useLiveEntities } from '../hooks/useLiveEntities';
 import { CONNECTION_STATUS_DISPLAY } from '../utils/connectionStatusDisplay';
-import { PlantIcon } from './ui';
+import { PlantEnergyControl } from './PlantEnergyControl';
 import styles from './TankView.module.css';
 import stage from './TankStage.module.css';
 
@@ -116,6 +116,15 @@ export function TankView({ worldId }: TankViewProps) {
         worldType,
         setWorldType,
     } = useViewMode(serverViewMode, state?.world_type, worldId || state?.world_id);
+
+    // Keep slot identities stable so ControlPanel's memo skips live payloads.
+    const viewOptions = useMemo(
+        () => <WorldModeSelector worldType={worldType} onChange={setWorldType} />,
+        [worldType, setWorldType],
+    );
+    const advancedOptions = useMemo(() => (
+        <PlantEnergyControl value={plantEnergyInput} onChange={handlePlantEnergyChange} isConnected={isConnected} />
+    ), [plantEnergyInput, handlePlantEnergyChange, isConnected]);
 
     const effectiveWorldType = state?.world_type ?? worldType;
 
@@ -204,28 +213,9 @@ export function TankView({ worldId }: TankViewProps) {
                     onToggleEffects={toggleEffects}
                     showSoccer={effectiveShowSoccer}
                     onToggleSoccer={toggleSoccer}
+                    viewOptions={viewOptions}
+                    advancedOptions={advancedOptions}
                 />
-
-                <WorldModeSelector worldType={worldType} onChange={setWorldType} />
-
-                {/* Plant Energy Input Control */}
-                <div className={`glass-panel ${styles.plantEnergyControl}`}>
-                    <label htmlFor="plant-energy-input" className={styles.plantEnergyLabel}>
-                        <PlantIcon size={12} /> PLANT ENERGY
-                    </label>
-                    <input
-                        id="plant-energy-input"
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={plantEnergyInput}
-                        onChange={handlePlantEnergyChange}
-                        disabled={!isConnected}
-                        className={styles.plantEnergySlider}
-                    />
-                    <span className={styles.plantEnergyValue}>{plantEnergyInput.toFixed(2)}</span>
-                </div>
             </div>
 
             {/* Simulation Stats Panel */}
