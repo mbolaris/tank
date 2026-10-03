@@ -6,10 +6,11 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from tools.run_bench import format_runtime_summary
+from tools.run_bench import expected_runtime_seconds, format_runtime_summary
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_BENCH = REPO_ROOT / "tools" / "run_bench.py"
@@ -106,6 +107,53 @@ def run(seed, fingerprint_callback=None):
 
 class TestRunBench:
     """Tests for tools/run_bench.py"""
+
+    @pytest.mark.parametrize("budget", [0, -1, True, False, "bad", float("inf"), float("nan")])
+    def test_invalid_runtime_budget_is_rejected(self, budget):
+        with pytest.raises(ValueError, match="finite positive number"):
+            expected_runtime_seconds(SimpleNamespace(EXPECTED_RUNTIME_SECONDS=budget))
+
+    def test_optional_runtime_budget(self):
+        assert expected_runtime_seconds(SimpleNamespace()) is None
+        assert expected_runtime_seconds(SimpleNamespace(EXPECTED_RUNTIME_SECONDS=None)) is None
+        assert expected_runtime_seconds(SimpleNamespace(EXPECTED_RUNTIME_SECONDS=3.5)) == 3.5
+
+    def test_determinism_reports_slow_second_run(self, tmp_path):
+        """The second subprocess's runtime must not disappear behind the first."""
+        fake_bench = create_fake_benchmark(tmp_path)
+        source = fake_bench.read_text(encoding="utf-8")
+        source = (
+            'from pathlib import Path\nCOUNTER = Path(__file__).with_suffix(".runs")\n' + source
+        )
+        source = source.replace(
+            "def run(seed, fingerprint_callback=None):",
+            "def run(seed, fingerprint_callback=None):\n"
+            "    runs = int(COUNTER.read_text()) if COUNTER.exists() else 0\n"
+            "    COUNTER.write_text(str(runs + 1))",
+        )
+        source = source.replace(
+            '"runtime_seconds": 0.01', '"runtime_seconds": 0.01 if runs == 0 else 7.0'
+        )
+        fake_bench.write_text(source, encoding="utf-8")
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RUN_BENCH),
+                str(fake_bench),
+                "--seed",
+                "42",
+                "--verify-determinism",
+            ],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "Determinism run 1: Runtime: 0.0s" in result.stdout
+        assert "Determinism run 2: Runtime: 7.0s" in result.stdout
+        assert result.stdout.count("WARNING: Runtime exceeds budget") == 1
+        assert "Determinism check PASSED" in result.stdout
 
     @pytest.mark.parametrize(
         ("elapsed", "budget", "warns"),

@@ -20,7 +20,12 @@ if str(ROOT) not in sys.path:
 from core.research.attempt_ledger import log_attempt
 from core.solutions.config_hash import compute_config_hash
 from tools.champion_eligibility import result_eligibility_error
-from tools.run_bench import expected_runtime_seconds, load_benchmark_module, run_benchmark
+from tools.run_bench import (
+    expected_runtime_seconds,
+    format_runtime_summary,
+    load_benchmark_module,
+    run_benchmark,
+)
 from tools.validate_improvement import (
     check_config_compatibility,
     get_champion_record,
@@ -68,6 +73,7 @@ def main():
 
     try:
         bench_module = load_benchmark_module(args.benchmark_path)
+        budget_seconds = expected_runtime_seconds(bench_module)
     except Exception as e:
         print(f"Error loading benchmark: {e}")
         sys.exit(1)
@@ -95,6 +101,7 @@ def main():
             run_elapsed = time.time() - start_run
             if "runtime_seconds" not in res:
                 res["runtime_seconds"] = run_elapsed
+            print(f"Seed {seed}: {format_runtime_summary(res['runtime_seconds'], budget_seconds)}")
             scores.append(res["score"])
             runtimes.append(res["runtime_seconds"])
             per_seed[str(seed)] = res
@@ -139,7 +146,7 @@ def main():
         "stdev": stdev_score,
         "n": n,
         "runtime_seconds": total_elapsed,
-        "expected_runtime_seconds": expected_runtime_seconds(bench_module),
+        "expected_runtime_seconds": budget_seconds,
         "config_hash": config_hash,
         "per_seed": per_seed,
         "timestamp": time.time(),

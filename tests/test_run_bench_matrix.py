@@ -42,6 +42,54 @@ def run(seed, fingerprint_callback=None):
 class TestRunBenchMatrix:
     """Tests for tools/run_bench_matrix.py and matrix validation."""
 
+    def test_runtime_warning_identifies_slow_seed(self, tmp_path):
+        fake_bench = create_fake_benchmark(tmp_path)
+        source = fake_bench.read_text(encoding="utf-8").replace(
+            '"runtime_seconds": 0.01', '"runtime_seconds": 7.0 if seed == 7 else 0.01'
+        )
+        fake_bench.write_text(source, encoding="utf-8")
+        out_path = tmp_path / "matrix.json"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RUN_BENCH_MATRIX),
+                str(fake_bench),
+                "--seeds",
+                "42,7,123",
+                "--out",
+                str(out_path),
+            ],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env={**os.environ, "ATTEMPT_LEDGER_PATH": str(tmp_path / "attempts.jsonl")},
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "Seed 7: Runtime: 7.0s (budget ~3.5s)\nWARNING:" in result.stdout
+        assert result.stdout.count("WARNING: Runtime exceeds budget") == 1
+        data = json.loads(out_path.read_text(encoding="utf-8"))
+        assert data["scores"] == [10.0, 20.0, 30.0]
+        assert data["mean"] == 20.0
+        assert data["expected_runtime_seconds"] == 3.5
+
+    def test_invalid_budget_fails_before_running_seeds(self, tmp_path):
+        fake_bench = create_fake_benchmark(tmp_path)
+        source = fake_bench.read_text(encoding="utf-8").replace(
+            "EXPECTED_RUNTIME_SECONDS = 3.5", "EXPECTED_RUNTIME_SECONDS = -1"
+        )
+        fake_bench.write_text(source, encoding="utf-8")
+        result = subprocess.run(
+            [sys.executable, str(RUN_BENCH_MATRIX), str(fake_bench)],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert result.returncode == 1
+        assert "EXPECTED_RUNTIME_SECONDS must be a finite positive number" in result.stdout
+        assert "Running seed" not in result.stdout
+
     def test_run_bench_matrix_basic(self, tmp_path):
         """Test running benchmark matrix and verifying output JSON structure."""
         fake_bench = create_fake_benchmark(tmp_path)
