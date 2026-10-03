@@ -81,7 +81,7 @@ interface CommentaryFeedProps {
 
 export function CommentaryFeed({ worldId, liveEntityIds, onInspectEntity }: CommentaryFeedProps) {
     const { comments, setComments, error, loaded } = useCommentary(worldId);
-    const { events: storyEvents } = useStoryEvents(worldId);
+    const { events: storyEvents, loaded: eventsLoaded, error: eventsError } = useStoryEvents(worldId);
     const [activeTopic, setActiveTopic] = useState<BoardFilter>(getStoredTopic);
     const [copiedRole, setCopiedRole] = useState<BoardPromptRole | null>(null);
     const viewerName = getViewerName();
@@ -190,8 +190,7 @@ export function CommentaryFeed({ worldId, liveEntityIds, onInspectEntity }: Comm
     return (
         <div className={styles.container}>
             <p className={styles.subtitle}>
-                Live observations posted by agents studying this simulation. Launch one with{' '}
-                <code>/observe-sim</code> or <code>python tools/post_commentary.py</code>.
+                World events and observations from this tank.
             </p>
 
             {/* Topic filter chips */}
@@ -204,6 +203,7 @@ export function CommentaryFeed({ worldId, liveEntityIds, onInspectEntity }: Comm
                             key={chip.value}
                             className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
                             onClick={() => handleTopicChange(chip.value)}
+                            aria-pressed={isActive}
                         >
                             {chip.icon && <span className={styles.chipIcon}>{chip.icon}</span>}
                             {chip.label}
@@ -214,7 +214,12 @@ export function CommentaryFeed({ worldId, liveEntityIds, onInspectEntity }: Comm
             </div>
 
             {/* Discussion prompts (copy to clipboard) */}
-            <div className={styles.promptBar}>
+            <details className={styles.agentTools}>
+                <summary>Invite an agent</summary>
+                <p className={styles.subtitle}>
+                    Copy a prompt to start or join a discussion about this tank.
+                </p>
+                <div className={styles.promptBar}>
                 <button
                     className={styles.promptButton}
                     onClick={() => handleCopyPrompt('leader')}
@@ -230,17 +235,33 @@ export function CommentaryFeed({ worldId, liveEntityIds, onInspectEntity }: Comm
                     🗣️ Copy Participate Prompt
                 </button>
                 {copiedRole && <span className={styles.copiedHint}>Copied!</span>}
-            </div>
+                </div>
+            </details>
 
             {error && comments.length === 0 && (
                 <div className={styles.error}>Could not load commentary: {error}</div>
             )}
 
-            {loaded && !error && comments.length === 0 && storyEvents.length === 0 && (
-                <div className={styles.empty}>
-                    No commentary yet. An agent can post one with{' '}
-                    <code>python tools/post_commentary.py --text &quot;...&quot;</code> or by POSTing to{' '}
-                    <code>/api/world/{effectiveId}/commentary</code>.
+            {eventsError && storyEvents.length === 0 && (
+                <div className={styles.error}>Could not load world events: {eventsError}</div>
+            )}
+
+            {rows.length === 0 && (!loaded || !eventsLoaded) && !error && !eventsError && (
+                <div className={styles.empty} role="status">Loading tank activity…</div>
+            )}
+
+            {loaded && eventsLoaded && !error && !eventsError && rows.length === 0 && (
+                <div className={styles.empty} role="status">
+                    {activeTopic === 'all'
+                        ? 'Watch the tank. World events and observations will appear here.'
+                        : activeTopic === 'world'
+                            ? 'No world events yet. Keep watching for births and other milestones.'
+                            : `No observations in ${TOPIC_CHIPS.find(chip => chip.value === activeTopic)?.label} yet.`}
+                    {activeTopic !== 'all' && (
+                        <button className={styles.promptButton} onClick={() => handleTopicChange('all')}>
+                            Show all activity
+                        </button>
+                    )}
                 </div>
             )}
 

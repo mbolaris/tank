@@ -83,7 +83,9 @@
     color: #94a3b8;
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
-    white-space: nowrap;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
 }
 
 .promptButton:hover {
@@ -97,6 +99,23 @@
     color: #4ade80;
 }
 
+.agentTools summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.agentTools[open] .subtitle {
+    margin: 8px 0;
+}
+
+.agentTools summary:focus-visible,
+.chip:focus-visible,
+.promptButton:focus-visible {
+    outline: 2px solid #93c5fd;
+    outline-offset: 3px;
+}
+
 .list {
     display: flex;
     flex-direction: column;
@@ -106,19 +125,16 @@
 }
 
 .empty {
-    padding: 16px 12px;
+    padding: 10px 0;
     font-size: 12px;
     color: #94a3b8;
     line-height: 1.5;
     text-align: center;
 }
 
-.empty code {
-    color: #cbd5e1;
-    background: rgba(148, 163, 184, 0.12);
-    border-radius: 3px;
-    padding: 1px 4px;
-    font-size: 11px;
+.empty .promptButton {
+    display: block;
+    margin: 8px auto 0;
 }
 
 .error {
