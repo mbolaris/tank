@@ -4,6 +4,10 @@
 > read [EXPERIENCE_ROADMAP.md](EXPERIENCE_ROADMAP.md) and
 > [UI_SPEC.md](UI_SPEC.md). Keep each task in its own Layer 2 PR.
 
+For current task selection, use the [active engineering queue](IMPROVEMENT_PROPOSALS.md#active-queue--audited-2026-10-03).
+These older briefs retain design rationale; their original sequence does not
+override Q2–Q4's correctness and evidence work. Watch/Build/Analyze already exist.
+
 ## Status snapshot
 
 Audited against the repository on 2026-07-11. This table replaces the old list, which
@@ -20,10 +24,10 @@ incorrectly described several shipped foundations as future work.
 | U6 | Structured story-event service | DONE | Store, detectors, service, REST API, and persistence; three detectors as specified |
 | U7 | Living History feed and timeline | DONE | World events merged into the Board + a keyboard-navigable timeline under the canvas |
 | U8 | Return recap and legends | DONE | U8a (recap) and U8b (legends) both shipped |
-| U9 | Observe / Design / Lab presentation shell | NEXT | U4 and U7 are DONE; this opens Phase 2 |
+| U9 | Observe / Design / Lab presentation shell | PARTLY SHIPPED | Watch/Build/Analyze exist; evaluate remaining usability/default-mode changes after Q2–Q4, rather than building another shell |
 | U10 | Contextual overlays and intervention toolbelt | QUEUED | Depends on U9 |
-| U11 | Trust states and intervention provenance | QUEUED | Depends on U9 |
-| U12 | Fixed-baseline soccer evaluation | QUEUED | Metrics follow-up; current baseline field is a placeholder |
+| U11 | Trust states and intervention provenance | QUEUED | Q6 stages the ledger first; depends on Q3 and Q4 run identity |
+| U12 | Fixed-baseline soccer evaluation | IMPLEMENTED; provenance follow-up in Q4 | Live evaluator, skill endpoint, and stats collector now supply fixed-reference results |
 | U13 | Champion progress view in Lab | DEFERRED | Useful research view, but weaker for the watch loop |
 | U14 | First-run onboarding | DEFERRED | Build against the Observe shell, not the current dashboard |
 | U15 | README visuals | DEFERRED | Capture after Observe and Living History are visually stable |
@@ -358,6 +362,12 @@ actor, frame/time, old/new value, and reason/type; verification status is invali
 updated deterministically; tests cover attempts to bypass UI restrictions.
 
 ## U12 — Fixed-baseline soccer evaluation
+
+**2026-10-03 status:** the evaluator is implemented in
+`core/skill/live_soccer_evaluator.py`; `backend/routers/skill.py` exposes results,
+and `backend/runner/stats_collector.py` supplies `baseline_match_score_diff`.
+The original brief below describes that capability. Use Q4 for the remaining
+identity/comparability contract; do not create another evaluator.
 
 The existing Trends view charts goals per 1k frames, but that rate can change with match
 frequency and opponent composition. Complete the existing
