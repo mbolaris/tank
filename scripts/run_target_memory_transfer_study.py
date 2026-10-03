@@ -35,6 +35,7 @@ from core.behavior.target_memory_transfer_study import (
     render_markdown,
     seed_row,
 )
+from tools.study_provenance import apply_selection_protocol, study_provenance
 
 # Tiny structural-smoke budget: exercises every code path in minutes of
 # nothing, but its numbers are meaningless - never report them as evidence.
@@ -87,6 +88,7 @@ def main() -> int:
     }
     config = TransferStudyConfig(**{**config_kwargs(base), **overrides})
     cfg_kwargs = config_kwargs(config)
+    provenance = study_provenance(cfg_kwargs)
 
     started = time.perf_counter()
     print(f"Running {len(args.seeds)} seeds with {config} using {args.workers} worker(s)")
@@ -112,13 +114,22 @@ def main() -> int:
             )
 
     report = build_report(rows, config)
+    report["study"].update(provenance)
+    registered = (
+        not args.quick
+        and tuple(args.seeds) == DEFAULT_STUDY_SEEDS
+        and config == SCALED_STUDY_CONFIG
+    )
+    report["study"]["preregistration_applied"] = registered
+    if registered:
+        apply_selection_protocol(report)
     report["study"]["wall_time_seconds"] = round(time.perf_counter() - started, 1)
     report["study"]["quick_mode_not_evidence"] = bool(args.quick)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2) + "\n")
+    args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     markdown_path = args.output.with_suffix(".md")
-    markdown_path.write_text(render_markdown(report))
+    markdown_path.write_text(render_markdown(report), encoding="utf-8")
 
     print(f"\nReport: {args.output}\nSummary: {markdown_path}\n")
     print(render_markdown(report))

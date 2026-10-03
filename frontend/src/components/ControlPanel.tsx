@@ -2,14 +2,16 @@
  * Control panel component with simulation controls
  */
 
-import { memo, useEffect, useState, type ReactNode } from 'react';
-import type { Command } from '../types/simulation';
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
+import type { Command, CommandResponse } from '../types/simulation';
 import { Button, FoodIcon, FishIcon, PlayIcon, PauseIcon, FastForwardIcon, ResetIcon, EyeIcon, EyeOffIcon } from './ui';
 import styles from './ControlPanel.module.css';
 
 interface ControlPanelProps {
     onCommand: (command: Command) => void;
     isConnected: boolean;
+    paused?: boolean;
+    onPauseCommand?: (command: Command) => Promise<CommandResponse>;
     fastForwardEnabled?: boolean;
     showEffects?: boolean;
     onToggleEffects?: () => void;
@@ -21,8 +23,7 @@ interface ControlPanelProps {
 
 // Memoized: its props change only on user action, but TankView re-renders
 // on every WebSocket payload.
-export const ControlPanel = memo(function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects, showSoccer, onToggleSoccer, viewOptions, advancedOptions }: ControlPanelProps) {
-    const [isPaused, setIsPaused] = useState(false);
+export const ControlPanel = memo(function ControlPanel({ onCommand, isConnected, paused, onPauseCommand, fastForwardEnabled, showEffects, onToggleEffects, showSoccer, onToggleSoccer, viewOptions, advancedOptions }: ControlPanelProps) {
     const [isFastForward, setIsFastForward] = useState(false);
 
     useEffect(() => {
@@ -32,16 +33,6 @@ export const ControlPanel = memo(function ControlPanel({ onCommand, isConnected,
     const handleAddFood = () => onCommand({ command: 'add_food' });
     const handleSpawnFish = () => onCommand({ command: 'spawn_fish' });
 
-    const handlePause = () => {
-        if (isPaused) {
-            onCommand({ command: 'resume' });
-            setIsPaused(false);
-        } else {
-            onCommand({ command: 'pause' });
-            setIsPaused(true);
-        }
-    };
-
     const handleFastForward = () => {
         const newState = !isFastForward;
         setIsFastForward(newState);
@@ -50,7 +41,6 @@ export const ControlPanel = memo(function ControlPanel({ onCommand, isConnected,
 
     const handleReset = () => {
         onCommand({ command: 'reset' });
-        setIsPaused(false);
         setIsFastForward(false);
     };
 
@@ -72,9 +62,7 @@ export const ControlPanel = memo(function ControlPanel({ onCommand, isConnected,
             <div className={styles.group} role="group" aria-label="Simulation">
                 <span className={styles.groupLabel}>Simulation</span>
                 <div className={styles.buttons}>
-                <Button onClick={handlePause} disabled={!isConnected} variant="secondary">
-                    {isPaused ? <><PlayIcon size={12} /> Resume</> : <><PauseIcon size={12} /> Pause</>}
-                </Button>
+                <PauseControl paused={paused} isConnected={isConnected} send={onPauseCommand} />
                 <Button onClick={handleFastForward} disabled={!isConnected} variant={isFastForward ? 'special' : 'secondary'}>
                     <FastForwardIcon size={12} /> {isFastForward ? 'Normal' : 'Fast'}
                 </Button>
@@ -117,3 +105,44 @@ export const ControlPanel = memo(function ControlPanel({ onCommand, isConnected,
         </div>
     );
 });
+
+function PauseControl({ paused, isConnected, send }: { paused?: boolean; isConnected: boolean; send?: (command: Command) => Promise<CommandResponse> }) {
+    const [pending, setPending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const flight = useRef(0);
+    const busy = useRef(false);
+    useEffect(() => {
+        const lifetime = flight;
+        const pendingCommand = busy;
+        if (!isConnected) {
+            busy.current = false;
+            setPending(false);
+        }
+        return () => { lifetime.current++; pendingCommand.current = false; };
+    }, [isConnected]);
+    const toggle = async () => {
+        if (!send || busy.current || paused === undefined || !isConnected) return;
+        const token = ++flight.current;
+        busy.current = true;
+        setPending(true);
+        setError(null);
+        try {
+            const response = await send({ command: paused ? 'resume' : 'pause' });
+            if (!response.success || typeof response.paused !== 'boolean') {
+                throw new Error(response.error || 'Pause command was not acknowledged');
+            }
+            // The shared server snapshot owns the button label, including
+            // commands from other clients. An acknowledgement only ends flight.
+        } catch (e) {
+            if (flight.current === token) setError(e instanceof Error ? e.message : 'Pause failed');
+        } finally {
+            if (flight.current === token) { busy.current = false; setPending(false); }
+        }
+    };
+    return <>
+        <Button onClick={toggle} disabled={!isConnected || paused === undefined || !send || pending} variant="secondary">
+            {pending ? 'Waiting…' : paused ? <><PlayIcon size={12} /> Resume</> : <><PauseIcon size={12} /> Pause</>}
+        </Button>
+        {error && <span role="alert">{error}</span>}
+    </>;
+}

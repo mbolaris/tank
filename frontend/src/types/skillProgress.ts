@@ -21,6 +21,11 @@ export interface SkillProgressDomain {
     /** One sentence naming the numbers the verdict rests on. */
     reason: string;
     samples: number;
+    age_frames?: number | null;
+    coverage_frames?: number;
+    series_breaks?: number;
+    identity_status?: string;
+    unknown_records?: number;
     earlier_mean: number | null;
     recent_mean: number | null;
     delta: number | null;

@@ -86,10 +86,10 @@ class TestTankBackwardCompatibility:
 
         # These commands should not raise errors or return error responses
         result = runner.handle_command("pause")
-        assert result is None
+        assert result == {"success": True, "paused": True}
 
         result = runner.handle_command("resume")
-        assert result is None
+        assert result == {"success": True, "paused": False}
 
         result = runner.handle_command("add_food")
         assert result is None
@@ -127,11 +127,11 @@ class TestNonTankWorldAgnosticism:
 
         # Universal commands should work
         result = runner.handle_command("pause")
-        assert result is None
+        assert result == {"success": True, "paused": True}
         assert runner.world.paused is True
 
         result = runner.handle_command("resume")
-        assert result is None
+        assert result == {"success": True, "paused": False}
         assert runner.world.paused is False
 
         # Use the runner's synchronized stepping API. Calling world.step()
@@ -213,11 +213,11 @@ class TestWorldHooksIntegration:
 
         # These should work for any world type
         result = runner.handle_command("pause")
-        assert result is None
+        assert result == {"success": True, "paused": True}
         assert runner.world.paused
 
         result = runner.handle_command("resume")
-        assert result is None
+        assert result == {"success": True, "paused": False}
         assert not runner.world.paused
 
         runner.stop()

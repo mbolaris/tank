@@ -113,6 +113,7 @@ def collect_stats(
     poker_stats = collect_poker_stats_payload(stats)
 
     stats_payload = StatsPayload(
+        paused=runner.paused,
         **base_stats,
         **energy_stats,
         **physical_stats,

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ActivityRequests } from './activityRequests';
 import { config } from '../config';
 import type { StoryEvent, StoryEventResponse } from '../types/story';
 
@@ -39,22 +40,27 @@ export function useStoryEvents(worldId: string | undefined): UseStoryEventsResul
     const [error, setError] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
 
-    const mountedRef = useRef(true);
-    /** Highest id merged so far; 0 means "no cursor, fetch a backfill page". */
-    const cursorRef = useRef(0);
+    const [owner, setOwner] = useState(worldId || 'default');
 
     const effectiveId = worldId || 'default';
 
-    const fetchEvents = useCallback(async () => {
-        const cursor = cursorRef.current;
-        const query = cursor > 0 ? `since_id=${cursor}` : `limit=${BACKFILL_LIMIT}`;
-        try {
-            const response = await fetch(`${config.storyEventsUrl(effectiveId)}?${query}`);
+    useEffect(() => {
+        const requests = new ActivityRequests();
+        let highWater = 0;
+        setOwner(effectiveId);
+        setEvents([]);
+        setError(null);
+        setLoaded(false);
+        const fetchEvents = () => requests.run(async signal => {
+            const cursor = highWater;
+            const query = cursor > 0 ? `since_id=${cursor}` : `limit=${BACKFILL_LIMIT}`;
+            const response = await fetch(`${config.storyEventsUrl(effectiveId)}?${query}`, { signal });
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
             const data: StoryEventResponse = await response.json();
-            if (!mountedRef.current) return;
+            return { data, cursor };
+        }, ({ data, cursor }) => {
 
             const incoming = data.events ?? [];
             setEvents((prev) => merge(prev, incoming, cursor));
@@ -62,33 +68,23 @@ export function useStoryEvents(worldId: string | undefined): UseStoryEventsResul
                 const highest = Math.max(...incoming.map((e) => e.id));
                 // After a restart, adopt the new stream's high-water mark rather
                 // than pinning to a cursor no future event will ever exceed.
-                cursorRef.current = restarted(incoming, cursor) ? highest : Math.max(cursor, highest);
+                highWater = restarted(incoming, cursor) ? highest : Math.max(cursor, highest);
             }
             setError(null);
             setLoaded(true);
-        } catch (e) {
-            if (!mountedRef.current) return;
+        }, e => {
             setError(e instanceof Error ? e.message : 'Failed to load story events');
             setLoaded(true);
-        }
-    }, [effectiveId]);
-
-    useEffect(() => {
-        mountedRef.current = true;
-        // A different world is a different id space - never carry the cursor
-        // or the previous world's events across.
-        cursorRef.current = 0;
-        setEvents([]);
-        setLoaded(false);
+        });
         fetchEvents();
         const interval = setInterval(fetchEvents, POLL_INTERVAL_MS);
         return () => {
-            mountedRef.current = false;
+            requests.close();
             clearInterval(interval);
         };
-    }, [fetchEvents]);
+    }, [effectiveId]);
 
-    return { events, error, loaded };
+    return { events: owner === effectiveId ? events : [], error: owner === effectiveId ? error : null, loaded: owner === effectiveId && loaded };
 }
 
 /**

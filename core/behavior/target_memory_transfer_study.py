@@ -316,6 +316,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"budget: {cfg['population_size']} individuals x {cfg['generations']} generations "
         f"x {cfg['evolution_runs']} runs | seeds: {study['seeds']}",
         "",
+        f"Code provenance: `{study.get('code_revision', 'unknown')}` | "
+        f"configuration identity: `{study.get('config_identity', 'unknown')}`",
+        "",
         f"**Overall verdict ({study['primary_effect']}): " f"{agg['overall_verdict'].upper()}**",
         "",
         f"_{study['decision_rule']}_",
@@ -409,4 +412,15 @@ def render_markdown(report: dict[str, Any]) -> str:
             "measurable at this budget."
         )
     lines.append("")
+    if "selection_decision" in report:
+        decision = report["selection_decision"]
+        lines += [
+            "## Preregistered selection-specific replication",
+            "",
+            f"Primary contrast: `{decision['primary_effect']}`; practical threshold: "
+            f"{decision['practical_threshold']}. Verdict: **{decision['verdict'].upper()}**.",
+            f"Source learning established: {decision['source_learning_established']}. "
+            f"Next action: `{decision['next_action']}`. Independent confirmation: false.",
+            "",
+        ]
     return "\n".join(lines)

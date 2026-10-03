@@ -70,6 +70,9 @@ class WorldSkillSnapshot:
     species_by_taxon_id: dict[str, SpeciesSkillSnapshot]
     simulation_config: Any
     genome_code_pool: Any
+    run_id: str = "unknown"
+    evaluator_identity: str = "unknown"
+    config_identity: str = "unknown"
 
 
 def _safe_deepcopy_snapshot_object(obj: Any) -> Any:
@@ -84,6 +87,7 @@ def _safe_deepcopy_snapshot_object(obj: Any) -> Any:
         if hasattr(obj, "to_dict"):
             try:
                 import random
+
                 from core.genetics.genome import Genome
 
                 return Genome.from_dict(obj.to_dict(), rng=random.Random(42))
@@ -166,13 +170,24 @@ def build_observatory_snapshot(
             for fish in living_fish
         )
 
-        simulation_config = getattr(runner.world, "simulation_config", None)
+        from backend.foraging_history import effective_config
+
+        simulation_config = effective_config(runner.world)
         simulation_config_copied = _safe_deepcopy_snapshot_object(simulation_config)
         genome_code_pool = getattr(runner.world, "genome_code_pool", None)
         frame = int(getattr(runner.world, "frame_count", getattr(runner, "frame_count", 0)))
+        from backend.foraging_history import config_identity, evaluator_identity
+
+        run_id = getattr(getattr(runner, "foraging_history", None), "run_id", "unknown")
+        if not isinstance(run_id, str):
+            run_id = "unknown"
+        effective_config_identity = config_identity(simulation_config_copied)
 
     return WorldSkillSnapshot(
         world_id=resolved_world_id,
+        run_id=run_id,
+        evaluator_identity=evaluator_identity(),
+        config_identity=effective_config_identity,
         frame=frame,
         living_fish=fish_snapshots,
         species_by_taxon_id=species_by_taxon_id,
@@ -198,6 +213,7 @@ def evaluate_observatory_snapshot(snapshot: WorldSkillSnapshot) -> dict[str, Any
 
     baseline = compute_foraging_gym_summary()
     config_hash = baseline["config_hash"]
+    evaluation_identity = f"{config_hash}:{snapshot.config_identity}:{snapshot.evaluator_identity}"
 
     # Each living_fish entry's genome is already an isolated deep copy (see
     # build_observatory_snapshot), so no further copying is needed here.
@@ -205,7 +221,7 @@ def evaluate_observatory_snapshot(snapshot: WorldSkillSnapshot) -> dict[str, Any
     for fish in living_fish:
         eval_res = evaluate_genome_with_cache(
             fish.genome,
-            config_hash,
+            evaluation_identity,
             FORAGING_GYM_SUMMARY_SEEDS,
             snapshot.simulation_config,
             snapshot.genome_code_pool,
@@ -327,6 +343,9 @@ def evaluate_observatory_snapshot(snapshot: WorldSkillSnapshot) -> dict[str, Any
     return {
         "status": "success",
         "world_id": snapshot.world_id,
+        "run_id": snapshot.run_id,
+        "evaluator_identity": snapshot.evaluator_identity,
+        "config_identity": snapshot.config_identity,
         "evaluated_at_frame": snapshot.frame,
         "evaluated_at_generation": generation,
         "benchmark_hash": config_hash,

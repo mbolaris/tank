@@ -164,6 +164,7 @@ class StatsPayload:
     total_asexual_births: int = 0
     fps: float = 0.0
     fast_forward: bool = False
+    paused: bool = False
     diversity_score: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
@@ -293,6 +294,7 @@ class StatsPayload:
             "total_asexual_births": self.total_asexual_births,
             "fps": self.fps,
             "fast_forward": self.fast_forward,
+            "paused": self.paused,
             "diversity_score": self.diversity_score,
         }
 

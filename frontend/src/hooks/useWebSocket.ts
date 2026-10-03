@@ -34,6 +34,7 @@ export function useWebSocket(worldId?: string) {
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
     const [schemaError, setSchemaError] = useState<string | null>(null);
     const [connectedWorldId, setConnectedWorldId] = useState<string | null>(worldId ?? null);
+    const [connectionOwner, setConnectionOwner] = useState(worldId);
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
     const connectRef = useRef<(() => void) | null>(null);
@@ -170,6 +171,9 @@ export function useWebSocket(worldId?: string) {
             ws.onclose = () => {
                 if (connectAttempt !== connectAttemptRef.current) return;
                 setIsConnected(false);
+                responseCallbacksRef.current.forEach(callback => callback({ success: false, error: 'WebSocket disconnected' }));
+                responseCallbacksRef.current.clear();
+                setState(null);
                 wsRef.current = null;
 
                 // Only attempt to reconnect if component is still mounted
@@ -199,7 +203,12 @@ export function useWebSocket(worldId?: string) {
 
     useEffect(() => {
         // Mark as mounted
+        const callbacks = responseCallbacksRef.current;
         unmountedRef.current = false;
+        setState(null);
+        setIsConnected(false);
+        setConnectedWorldId(worldId ?? null);
+        setConnectionOwner(worldId);
 
         // WebSocket setup synchronizes with external server state
         connect();
@@ -207,6 +216,8 @@ export function useWebSocket(worldId?: string) {
         return () => {
             // Mark as unmounted to prevent reconnection
             unmountedRef.current = true;
+            callbacks.forEach(callback => callback({ success: false, error: 'Connection changed' }));
+            callbacks.clear();
             connectAttemptRef.current += 1;
 
             // Cleanup on unmount
@@ -222,7 +233,7 @@ export function useWebSocket(worldId?: string) {
                 wsRef.current = null;
             }
         };
-    }, [connect]);
+    }, [connect, worldId]);
 
     const sendCommand = useCallback((command: Command) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -236,11 +247,12 @@ export function useWebSocket(worldId?: string) {
                 // Add a callback to handle the response
                 const callbackId = Math.random().toString(36);
                 responseCallbacksRef.current.set(callbackId, (data) => {
+                    clearTimeout(timeout);
                     resolve(data);
                 });
 
                 // Set a timeout in case response never comes
-                setTimeout(() => {
+                const timeout = setTimeout(() => {
                     if (responseCallbacksRef.current.has(callbackId)) {
                         responseCallbacksRef.current.delete(callbackId);
                         reject(new Error('Command timeout'));
@@ -248,26 +260,33 @@ export function useWebSocket(worldId?: string) {
                 }, 10000); // 10 second timeout
 
                 const requestId = callbackId;
-                wsRef.current.send(JSON.stringify({ ...command, request_id: requestId }));
+                try {
+                    wsRef.current.send(JSON.stringify({ ...command, request_id: requestId }));
+                } catch (error) {
+                    clearTimeout(timeout);
+                    responseCallbacksRef.current.delete(callbackId);
+                    reject(error);
+                }
             } else {
                 reject(new Error('WebSocket not connected'));
             }
         });
     }, []);
 
+    const currentWorld = connectionOwner === worldId;
     return {
-        state,
-        isConnected,
-        connectionStatus,
+        state: currentWorld ? state : null,
+        isConnected: currentWorld && isConnected,
+        connectionStatus: currentWorld ? connectionStatus : 'connecting' as ConnectionStatus,
         schemaError,
         sendCommand,
         sendCommandWithResponse,
         /** Current server URL for display */
         serverUrl: config.serverDisplay,
         /** Current world ID (from state, may lag behind connection) */
-        worldId: state?.world_id ?? null,
+        worldId: currentWorld ? state?.world_id ?? null : null,
         /** Connected world ID (available immediately after connection, before first update) */
-        connectedWorldId,
+        connectedWorldId: currentWorld ? connectedWorldId : null,
     };
 }
 
@@ -286,8 +305,12 @@ export function routeCommandResponse(
 
     // Backward-compatible fallback for legacy command responses that do not
     // include request IDs.
-    callbacks.forEach((callback) => callback(data));
-    callbacks.clear();
+    // Legacy uncorrelated replies are safe only with a single pending command.
+    // Never let an unrelated reply acknowledge pause/resume or several commands.
+    if (callbacks.size === 1 && data.paused === undefined) {
+        callbacks.forEach((callback) => callback(data));
+        callbacks.clear();
+    }
 }
 
 export function applyFullUpdate(

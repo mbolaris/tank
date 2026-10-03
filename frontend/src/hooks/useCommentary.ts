@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityRequests } from './activityRequests';
 import { config } from '../config';
 import type { CommentaryItem, CommentaryResponse } from '../types/simulation';
 
@@ -18,42 +19,50 @@ export interface UseCommentaryResult {
  * so both read the same data without doubling the request rate.
  */
 export function useCommentary(worldId: string | undefined): UseCommentaryResult {
-    const [comments, setComments] = useState<CommentaryItem[]>([]);
+    const [comments, setCommentsInternal] = useState<CommentaryItem[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
-    const mountedRef = useRef(true);
+    const [owner, setOwner] = useState(worldId || 'default');
+    const ownerRef = useRef<string | null>(owner);
 
     const effectiveId = worldId || 'default';
 
-    const fetchComments = useCallback(async () => {
-        try {
+    const setComments = useCallback<UseCommentaryResult['setComments']>((update) => {
+        setCommentsInternal(prev => ownerRef.current === effectiveId ? (typeof update === 'function' ? update(prev) : update) : prev);
+    }, [effectiveId]);
+
+    useEffect(() => {
+        const requests = new ActivityRequests();
+        ownerRef.current = effectiveId;
+        setOwner(effectiveId);
+        setCommentsInternal([]);
+        setError(null);
+        setLoaded(false);
+        const fetchComments = () => requests.run(async signal => {
             const url = `${config.commentaryUrl(effectiveId)}?limit=${FETCH_LIMIT}`;
-            const response = await fetch(url);
+            const response = await fetch(url, { signal });
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
             const data: CommentaryResponse = await response.json();
-            if (!mountedRef.current) return;
+            return data;
+        }, data => {
             const sorted = [...(data.comments ?? [])].sort((a, b) => b.id - a.id);
-            setComments(sorted);
+            setCommentsInternal(sorted);
             setError(null);
             setLoaded(true);
-        } catch (e) {
-            if (!mountedRef.current) return;
+        }, e => {
             setError(e instanceof Error ? e.message : 'Failed to load commentary');
             setLoaded(true);
-        }
-    }, [effectiveId]);
-
-    useEffect(() => {
-        mountedRef.current = true;
+        });
         fetchComments();
         const interval = setInterval(fetchComments, POLL_INTERVAL_MS);
         return () => {
-            mountedRef.current = false;
+            requests.close();
+            ownerRef.current = null;
             clearInterval(interval);
         };
-    }, [fetchComments]);
+    }, [effectiveId]);
 
-    return { comments, setComments, error, loaded };
+    return { comments: owner === effectiveId ? comments : [], setComments, error: owner === effectiveId ? error : null, loaded: owner === effectiveId && loaded };
 }
