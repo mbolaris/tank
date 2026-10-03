@@ -39,8 +39,9 @@ it has drifted. See the closing rule at the bottom of this file.
 
 - **Theme 13 (performance, 2026-09-22)** — the newest open queue, and the one
   that speeds up every other item's loop. **13.4** (the cost ratchet) has
-  shipped, so every win below now gets locked in by lowering a pin; **13.5**,
-  **13.7** and the open **13.8** candidates are `S`-sized and provable with one
+  shipped, so every win below now gets locked in by lowering a pin; **13.7**
+  now flags runtime overruns (2026-10-03). **13.5** and the open **13.8**
+  candidates are `S`-sized and provable with one
   `python tools/perf_check.py` run. This partly supersedes the "no pick-up-and-go
   infrastructure work" note below: those items are measured, small, and
   behavior-preserving by construction.
@@ -1780,12 +1781,19 @@ drives it independently of broadcasts.
 - Pinned by `tests/test_delta_stats_cadence.py` and a vitest case in
   `frontend/src/hooks/useWebSocket.test.ts`.
 
-### 13.7 Benchmark runtime budgets have drifted — `S` · ★★
-`survival_5k` declares `EXPECTED_RUNTIME_SECONDS = 45` and ran 54-62s here.
-Either re-measure every budget on CI's runner and correct them, or make
-`run_bench` flag a run that exceeds its budget by >25% - a budget nobody
-enforces is the same rot this file's closing rules describe. Pair with 13.4:
-budgets catch wall-clock regressions coarsely, counts catch them precisely.
+### 13.7 Benchmark runtime budgets have drifted — `S` · ★★ — SHIPPED (2026-10-03)
+Completed using the advisory-warning option; reference budgets were not
+re-measured or changed. `tools/run_bench.py` now prints a warning when a run's
+reported `runtime_seconds` exceeds `EXPECTED_RUNTIME_SECONDS` by **more than
+25%**, including the percentage over budget and a prompt to investigate load
+or a regression. Exactly 25% over does not warn. Missing runtime/budget and
+non-positive budgets do not trigger the warning.
+
+The warning is diagnostic: it leaves scores, result JSON, and exit status
+unchanged, and appears on both ordinary and `--verify-determinism` runs.
+`tests/test_run_bench.py` pins the boundary and exercises both CLI paths with
+an over-budget fixture, without sleeps or a full simulation. Pair with 13.4:
+budgets flag wall-clock regressions coarsely, counts catch them precisely.
 
 ### 13.8 The remaining 2026-07 candidates, re-ranked
 Still open from [PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md),

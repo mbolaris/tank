@@ -7,11 +7,15 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
+from tools.run_bench import format_runtime_summary
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_BENCH = REPO_ROOT / "tools" / "run_bench.py"
 
 
-def create_fake_benchmark(tmp_path: Path) -> Path:
+def create_fake_benchmark(tmp_path: Path, runtime_seconds: float = 0.01) -> Path:
     bench_path = tmp_path / "fake_bench.py"
     content = """
 BENCHMARK_ID = "tank/survival_5k"
@@ -36,6 +40,7 @@ def run(seed, fingerprint_callback=None):
         }
     }
 """
+    content = content.replace('"runtime_seconds": 0.01', f'"runtime_seconds": {runtime_seconds!r}')
     bench_path.write_text(content, encoding="utf-8")
     return bench_path
 
@@ -101,6 +106,55 @@ def run(seed, fingerprint_callback=None):
 
 class TestRunBench:
     """Tests for tools/run_bench.py"""
+
+    @pytest.mark.parametrize(
+        ("elapsed", "budget", "warns"),
+        [
+            (None, 4.0, False),
+            (6.0, None, False),
+            (6.0, 0.0, False),
+            (6.0, -4.0, False),
+            (3.0, 4.0, False),
+            (4.0, 4.0, False),
+            (4.999, 4.0, False),
+            (5.0, 4.0, False),
+            (5.001, 4.0, True),
+            (6.0, 4.0, True),
+        ],
+    )
+    def test_runtime_warning_threshold(self, elapsed, budget, warns):
+        summary = format_runtime_summary(elapsed, budget)
+        assert ("WARNING:" in summary) == warns
+        if elapsed == 6.0 and budget == 4.0:
+            assert "exceeds budget by 50.0%" in summary
+
+    @pytest.mark.parametrize("verify_determinism", [False, True])
+    def test_over_budget_warning_is_advisory(self, tmp_path, verify_determinism):
+        """Flag a slow run without failing it or changing its saved score."""
+        fake_bench = create_fake_benchmark(tmp_path, runtime_seconds=7.0)
+        out_path = tmp_path / "result.json"
+        command = [
+            sys.executable,
+            str(RUN_BENCH),
+            str(fake_bench),
+            "--seed",
+            "42",
+            "--out",
+            str(out_path),
+        ]
+        if verify_determinism:
+            command.append("--verify-determinism")
+        result = subprocess.run(
+            command, cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=15
+        )
+        assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert "WARNING: Runtime exceeds budget by 100.0% (>25%)" in result.stdout
+        if verify_determinism:
+            assert "Determinism check PASSED" in result.stdout
+        data = json.loads(out_path.read_text(encoding="utf-8"))
+        assert data["score"] == 12.34
+        assert data["runtime_seconds"] == 7.0
+        assert data["expected_runtime_seconds"] == 3.5
 
     def test_run_bench_from_repo_root(self, tmp_path):
         """Test running benchmark from repo root directory."""
