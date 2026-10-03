@@ -269,6 +269,10 @@ for provenance, control-budget limitations, the separately recorded presentation
 clarification, and the stop decision. These published scenarios remain development
 evidence; structural mutation and poker bindings remain conditional.
 
+Implementation: [PR #971](https://github.com/mbolaris/tank/pull/971), pending
+review. The [validation record](BACKLOG_Q1_Q5_VALIDATION.md) lists exact commands
+and results. The queue's `IMPLEMENTED` statuses do not imply the PR has merged.
+
 ## Historical audits and design rationale
 
 **2026-07-30 audit** (external review #5 pass —
