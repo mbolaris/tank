@@ -8,6 +8,10 @@ budget is a human-facing reference, not a timeout or scoring input.
 the budget in the result JSON as `expected_runtime_seconds`. Runs more than
 25% over budget print an advisory warning, including during
 `--verify-determinism`. The warning does not change the score or exit status.
+Determinism checks report each subprocess separately. `tools/run_bench_matrix.py`
+prints the same runtime summary for each seed, so a slow seed cannot be hidden
+by the total runtime. Declared budgets must be finite and positive; invalid
+budgets fail before the benchmark runs.
 
 ## Runtime Budgets
 

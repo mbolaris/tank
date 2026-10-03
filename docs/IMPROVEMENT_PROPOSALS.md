@@ -1795,6 +1795,14 @@ unchanged, and appears on both ordinary and `--verify-determinism` runs.
 an over-budget fixture, without sleeps or a full simulation. Pair with 13.4:
 budgets flag wall-clock regressions coarsely, counts catch them precisely.
 
+**Follow-through (2026-10-03):** matrix runs now report per-seed runtime and
+warnings, and determinism checks surface both subprocess timings, including
+an overrun confined to the second run. Both runners reject declared budgets
+that are non-positive, non-finite, or boolean before executing a benchmark.
+The generated benchmark catalog documents the policy. Runner regression
+tests pin a single slow seed, a slow second subprocess, and invalid metadata;
+all use synthetic runtimes rather than waiting for wall-clock overruns.
+
 ### 13.8 The remaining 2026-07 candidates, re-ranked
 Still open from [PERFORMANCE_PROFILE_2026_07.md](PERFORMANCE_PROFILE_2026_07.md),
 re-measured 2026-09-22: **P6** collision-candidate sorting (~6% of the

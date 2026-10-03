@@ -8,6 +8,7 @@ import argparse
 import importlib.util
 import inspect
 import json
+import math
 import os
 import subprocess
 import sys
@@ -51,7 +52,15 @@ def expected_runtime_seconds(bench_module) -> float | None:
     budget = getattr(bench_module, "EXPECTED_RUNTIME_SECONDS", None)
     if budget is None:
         return None
-    return float(budget)
+    if isinstance(budget, bool):
+        raise ValueError("EXPECTED_RUNTIME_SECONDS must be a finite positive number")
+    try:
+        budget = float(budget)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("EXPECTED_RUNTIME_SECONDS must be a finite positive number") from exc
+    if not math.isfinite(budget) or budget <= 0:
+        raise ValueError("EXPECTED_RUNTIME_SECONDS must be a finite positive number")
+    return budget
 
 
 def format_runtime_summary(elapsed_seconds: float | None, budget_seconds: float | None) -> str:
@@ -218,6 +227,14 @@ def main():
             with open(temp_out2.name) as f:
                 result2 = json.load(f)
 
+            for run_number, result in enumerate((result1, result2), start=1):
+                elapsed = result.get("runtime_seconds")
+                elapsed = float(elapsed) if isinstance(elapsed, (int, float)) else None
+                print(
+                    f"Determinism run {run_number}: "
+                    f"{format_runtime_summary(elapsed, budget_seconds)}"
+                )
+
             # Cleanup temp files
             try:
                 os.unlink(temp_out1.name)
@@ -262,7 +279,8 @@ def main():
         elapsed_for_summary = (
             float(elapsed_seconds) if isinstance(elapsed_seconds, (int, float)) else None
         )
-        print(format_runtime_summary(elapsed_for_summary, budget_seconds))
+        if not args.verify_determinism:
+            print(format_runtime_summary(elapsed_for_summary, budget_seconds))
 
         # Add environment info
         result1["timestamp"] = time.time()
