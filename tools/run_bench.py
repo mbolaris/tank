@@ -60,7 +60,14 @@ def format_runtime_summary(elapsed_seconds: float | None, budget_seconds: float 
         return "Runtime: unavailable"
     if budget_seconds is None:
         return f"Runtime: {elapsed_seconds:.1f}s (no budget recorded)"
-    return f"Runtime: {elapsed_seconds:.1f}s (budget ~{budget_seconds:g}s)"
+    summary = f"Runtime: {elapsed_seconds:.1f}s (budget ~{budget_seconds:g}s)"
+    if budget_seconds > 0 and elapsed_seconds > budget_seconds * 1.25:
+        over_budget_percent = 100 * (elapsed_seconds / budget_seconds - 1)
+        summary += (
+            f"\nWARNING: Runtime exceeds budget by {over_budget_percent:.1f}% "
+            "(>25%); investigate machine load or a performance regression."
+        )
+    return summary
 
 
 def create_fingerprint_recorder(path: str, bench_module, seed: int, interval: int):
