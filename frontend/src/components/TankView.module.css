@@ -81,43 +81,6 @@
     font-family: var(--font-mono);
 }
 
-/* Plant energy control */
-.plantEnergyControl {
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-}
-
-.plantEnergyLabel {
-    color: var(--color-text-dim);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.plantEnergySlider {
-    width: 80px;
-    accent-color: #4ade80;
-    cursor: pointer;
-}
-
-.plantEnergySlider:disabled {
-    cursor: not-allowed;
-}
-
-.plantEnergyValue {
-    color: var(--color-text-main);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    min-width: 40px;
-}
-
 /* Section wrapper */
 .sectionWrapper {
     margin-top: 20px;
