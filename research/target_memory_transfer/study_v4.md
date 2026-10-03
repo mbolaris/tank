@@ -2,7 +2,9 @@
 
 Scenario sets: `v4` | budget: 32 individuals x 30 generations x 5 runs | seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 42, 123]
 
-**Overall verdict (transfer_vs_disjoint): POSITIVE**
+Code provenance: `unknown` | configuration identity: `unknown`
+
+**Overall verdict (transfer_vs_disjoint): NEGATIVE**
 
 _verdict is positive/negative only when the 95% bootstrap CI of the mean effect excludes zero; otherwise inconclusive_
 
@@ -31,10 +33,10 @@ _verdict is positive/negative only when the 95% bootstrap CI of the mean effect 
 
 ## Evolved Genomes (Parameter Drift & Trajectories)
 
-| Parameter | Founder (Mean ± SD) | Neutral (Mean ± SD) | Food-Trained (Mean ± SD) | Ball-Trained (Mean ± SD) |
+| Parameter | Founder (Mean Â± SD) | Neutral (Mean Â± SD) | Food-Trained (Mean Â± SD) | Ball-Trained (Mean Â± SD) |
 |---|---|---|---|---|
-| memory_duration | 116.8792 ± 92.1874 | 109.6630 ± 41.0440 | 95.8254 ± 64.5924 | 136.7820 ± 69.0563 |
-| motion_extrapolation_duration | 49.9338 ± 39.6535 | 45.7835 ± 21.0969 | 46.6248 ± 22.9307 | 50.9362 ± 22.9795 |
+| memory_duration | 116.8792 Â± 92.1874 | 109.6630 Â± 41.0440 | 95.8254 Â± 64.5924 | 136.7820 Â± 69.0563 |
+| motion_extrapolation_duration | 49.9338 Â± 39.6535 | 45.7835 Â± 21.0969 | 46.6248 Â± 22.9307 | 50.9362 Â± 22.9795 |
 
 ## Per-family effects (food_trained - default)
 

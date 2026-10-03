@@ -118,7 +118,17 @@ def setup_router(
             {
                 "schema_version": SCHEMA_VERSION,
                 "world_id": resolved_world_id,
-                "domains": [a.as_dict() for a in progress_service.assess(resolved_world_id)],
+                "domains": [
+                    {
+                        **a.as_dict(),
+                        **(
+                            progress_service.evidence_metadata(resolved_world_id)
+                            if a.domain == "foraging"
+                            else {}
+                        ),
+                    }
+                    for a in progress_service.assess(resolved_world_id)
+                ],
             }
         )
 

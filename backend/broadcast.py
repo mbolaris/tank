@@ -90,6 +90,7 @@ async def broadcast_updates_for_world(
 
     frame_count = 0
     last_sent_frame = -1
+    last_sent_paused: bool | None = None
     next_send_at = 0.0
     last_debug_log = time.perf_counter()
     slow_send_windows: dict[object, tuple[int, float]] = {}
@@ -156,12 +157,21 @@ async def broadcast_updates_for_world(
                     await asyncio.sleep(1 / FRAME_RATE)
                     continue
 
-                if state.frame == last_sent_frame:
+                stats = getattr(state, "stats", None)
+                paused = (
+                    stats.get("paused")
+                    if isinstance(stats, dict)
+                    else getattr(stats, "paused", None)
+                )
+                pause_changed = isinstance(paused, bool) and paused != last_sent_paused
+                if state.frame == last_sent_frame and not pause_changed:
                     dropped_frames += 1
                     await asyncio.sleep(frame_wait_poll)
                     continue
 
                 last_sent_frame = state.frame
+                if isinstance(paused, bool):
+                    last_sent_paused = paused
 
                 try:
                     serialize_start = time.perf_counter()

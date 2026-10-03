@@ -12,9 +12,8 @@ flattening that difference would be the easiest way to make the indicator lie:
   quantised steps, and a better one. It is only ever kept as "the latest
   result", so this service retains the bounded series that a trend needs.
 
-Foraging's series is in memory and starts empty after a restart. That is
-reported honestly as `no_data` with the sample count rather than papered over:
-an indicator that invented history would defeat its own purpose.
+Foraging history is persisted on the runner alongside other telemetry. Only
+the latest compatible segment contributes to a trend; legacy identities stay unknown.
 """
 
 from __future__ import annotations
@@ -107,6 +106,14 @@ class SkillProgressService:
         replayed or re-persisted result cannot inflate the series into looking
         like more evidence than it is.
         """
+        history = self._history(world_id)
+        if history is not None:
+            history.record(result)
+            return
+        if self._world_manager is not None:
+            return
+        # Standalone, non-persistent diagnostic callers retain their legacy
+        # series; unidentified records are never written into a world save.
         observation = foraging_observation(result)
         if observation is None:
             return
@@ -116,7 +123,51 @@ class SkillProgressService:
         series.append(observation)
 
     def foraging_observations(self, world_id: str) -> list[SkillObservation]:
+        history = self._history(world_id)
+        if history is not None:
+            from backend.foraging_history import config_identity, effective_config
+
+            assert self._world_manager is not None
+            instance = self._world_manager.get_world(world_id)
+            current_config = effective_config(instance.runner.world)
+            rows = history.comparable()
+            if rows and rows[-1]["config_identity"] != config_identity(current_config):
+                return []
+            return [
+                observation
+                for row in rows
+                if (observation := foraging_observation(row)) is not None
+            ]
         return list(self._foraging.get(world_id, ()))
+
+    def _history(self, world_id: str) -> Any | None:
+        instance = self._world_manager.get_world(world_id) if self._world_manager else None
+        return getattr(getattr(instance, "runner", None), "foraging_history", None)
+
+    def evidence_metadata(self, world_id: str) -> dict[str, Any]:
+        history = self._history(world_id)
+        if history is None:
+            return {"identity_status": "unknown", "series_breaks": 0}
+        from backend.foraging_history import identity
+
+        assert self._world_manager is not None
+        records = list(history.records)
+        observations = self.foraging_observations(world_id)
+        instance = self._world_manager.get_world(world_id)
+        frame = instance.runner.frame_count
+        return {
+            "identity_status": "known" if observations else "unknown_or_incompatible",
+            "run_id": history.run_id,
+            "series_breaks": sum(
+                identity(records[i - 1]) != identity(records[i]) for i in range(1, len(records))
+            )
+            + int(bool(records) and records[-1]["run_id"] != history.run_id),
+            "unknown_records": history.unknown_records,
+            "age_frames": max(0, frame - observations[-1].frame) if observations else None,
+            "coverage_frames": (
+                observations[-1].frame - observations[0].frame if observations else 0
+            ),
+        }
 
     # -- ladder series ---------------------------------------------------
 

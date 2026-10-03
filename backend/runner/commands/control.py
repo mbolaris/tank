@@ -20,14 +20,16 @@ class ControlCommands:
     def _cmd_pause(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'pause' command."""
         self.paused = True
+        self._invalidate_state_cache()
         logger.info("Simulation paused")
-        return None
+        return {"success": True, "paused": self.paused}
 
     def _cmd_resume(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'resume' command."""
         self.paused = False
+        self._invalidate_state_cache()
         logger.info("Simulation resumed")
-        return None
+        return {"success": True, "paused": self.paused}
 
     def _cmd_reset(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'reset' command."""
@@ -38,6 +40,9 @@ class ControlCommands:
             self.world.setup()
         self._invalidate_state_cache()
         # Unpause after reset for intuitive behavior
+        history = getattr(self, "foraging_history", None)
+        if history is not None:
+            history.start_run()
         self.paused = False
         self.fast_forward = False
         logger.info("Simulation reset")

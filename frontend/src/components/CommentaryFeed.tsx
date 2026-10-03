@@ -79,7 +79,11 @@ interface CommentaryFeedProps {
     onInspectEntity?: (entityId: number) => void;
 }
 
-export function CommentaryFeed({ worldId, liveEntityIds, onInspectEntity }: CommentaryFeedProps) {
+export function CommentaryFeed(props: CommentaryFeedProps) {
+    return <WorldFeed key={props.worldId || 'default'} {...props} />;
+}
+
+function WorldFeed({ worldId, liveEntityIds, onInspectEntity }: CommentaryFeedProps) {
     const { comments, setComments, error, loaded } = useCommentary(worldId);
     const { events: storyEvents, loaded: eventsLoaded, error: eventsError } = useStoryEvents(worldId);
     const [activeTopic, setActiveTopic] = useState<BoardFilter>(getStoredTopic);

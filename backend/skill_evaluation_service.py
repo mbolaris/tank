@@ -102,7 +102,16 @@ class SkillEvaluationService:
     def get_latest(self, world_id: str) -> dict[str, Any] | None:
         """Return a copy of the latest completed result for ``world_id``."""
         result = self._latest.get(world_id)
+        if result is not None and not self._current_run(world_id, result):
+            return None
         return deepcopy(result) if result is not None else None
+
+    def _current_run(self, world_id: str, result: dict[str, Any]) -> bool:
+        if result.get("run_id") in (None, "unknown") or self._world_manager is None:
+            return True
+        instance = self._world_manager.get_world(world_id)
+        history = getattr(getattr(instance, "runner", None), "foraging_history", None)
+        return history is not None and history.run_id == result["run_id"]
 
     def set_result_observer(self, observer: Callable[[str, dict[str, Any]], None] | None) -> None:
         """Register a callback notified of every completed result.
@@ -116,6 +125,8 @@ class SkillEvaluationService:
 
     def store_result(self, world_id: str, result: dict[str, Any]) -> None:
         """Store a completed result, evicting the least-recently-updated world."""
+        if not self._current_run(world_id, result):
+            return  # A reset/deleted world's late evaluation is not current evidence.
         self._latest.pop(world_id, None)
         self._latest[world_id] = deepcopy(result)
         while len(self._latest) > self._max_results:
@@ -150,7 +161,7 @@ class SkillEvaluationService:
             else:
                 result = await asyncio.to_thread(self._evaluator, world_id)
             self.store_result(world_id, result)
-            return deepcopy(result)
+            return self.get_latest(world_id)
         except BrokenProcessPool:
             # The worker died (e.g. Ctrl+C reaches the whole process group).
             # Keep the last result; the next refresh starts a fresh worker.

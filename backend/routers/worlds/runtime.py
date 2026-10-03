@@ -51,6 +51,8 @@ def register(router: APIRouter, world_manager: WorldManager) -> None:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
         instance.runner.paused = True
+        if hasattr(instance.runner, "invalidate_state_cache"):
+            instance.runner.invalidate_state_cache()
         return JSONResponse(
             {
                 "world_id": world_id,
@@ -74,6 +76,8 @@ def register(router: APIRouter, world_manager: WorldManager) -> None:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
         instance.runner.paused = False
+        if hasattr(instance.runner, "invalidate_state_cache"):
+            instance.runner.invalidate_state_cache()
         return JSONResponse(
             {
                 "world_id": world_id,

@@ -36,12 +36,12 @@ estimate, not a runtime or delivery promise.
 
 | Order | ID | Outcome | Layer / effort | Status and prerequisite |
 |---:|---|---|---|---|
-| 1 | Q1 | Published research verdicts agree with their source data | 2 / S | READY |
-| 2 | Q2 | Switching worlds cannot display another world's activity | 2 / S–M | READY |
-| 3 | Q3 | Playback controls reflect the server's accepted state | 2 / M | READY |
-| 4 | Q4 | Skill trends survive restart without mixing incomparable samples | 2 / M, staged | READY for schema design; persistence follows identity contract |
-| 5 | Q5 | Resolve selection-specific transfer before expanding the substrate | research first; 1 only for a later candidate / M | QUEUED after Q1 and reproducible study provenance |
-| 6 | Q6 | Experiments disclose human interventions | 2 / M, staged | QUEUED after Q3 and Q4's run identity |
+| 1 | Q1 | Published research verdicts agree with their source data | 2 / S | IMPLEMENTED: saved report repair and offline freshness check |
+| 2 | Q2 | Switching worlds cannot display another world's activity | 2 / S–M | IMPLEMENTED: cancelled/scoped polling and world-owned consumers |
+| 3 | Q3 | Playback controls reflect the server's accepted state | 2 / M | IMPLEMENTED: pause-only acknowledgement and authoritative broadcast |
+| 4 | Q4 | Skill trends survive restart without mixing incomparable samples | 2 / M, staged | IMPLEMENTED: identity contract, bounded world-save history and display |
+| 5 | Q5 | Resolve selection-specific transfer before expanding the substrate | research first; 1 only for a later candidate / M | IMPLEMENTED: preregistered diagnostic; selection-specific transfer inconclusive |
+| 6 | Q6 | Experiments disclose human interventions | 2 / M, staged | READY for Stage A after Q3 and Q4's run identity |
 
 ### Q1 — Make research artifacts agree with their declared primary effect
 
@@ -235,6 +235,39 @@ mark the queue row and its source proposal together, attach reproduction/PR
 evidence, and promote the next unblocked item. Do not mark a planned check as
 passed. The historical reviews below explain previous decisions; they do not
 override this queue.
+
+**Q1–Q5 implementation evidence (2026-10-03).** Q1 regenerates only the
+maintained v4 Markdown from unchanged JSON and checks retained rows, primary
+effect, confidence rule, headline and freshness with
+`tools/check_transfer_report.py`; old provenance explicitly says unknown. Q2
+serializes polls within one effect lifetime, aborts navigation/unmount requests,
+and rejects late responses even when cancellation is ignored. Board reactions,
+ambient toasts, the cinematic director and visit history have world-owned
+lifetimes. Controlled-promise unit tests and a browser harness exercise A→B
+with B resolving before A. Q3 adds correlated accepted pause/resume replies,
+server pause state in full/delta stats, and same-frame pause broadcasts; pending
+commands cannot double-send and clear on disconnect/world change. A real paused
+reload and two-client browser path cover the contract. Speed/reset reconciliation
+remain separate follow-ups under Q3's stated stop rule.
+
+Q4's [identity contract](SKILL_EVIDENCE_IDENTITY.md) and
+`backend/foraging_history.py` retain at most 60 successful live samples through
+the existing world save/restore path. Run, evaluator, effective configuration
+and ruler identities partition comparable segments. Actual adapter configuration
+also scopes the evaluation cache. The existing progress panel shows sample
+count, frame age/coverage, series breaks and unknown/incompatible evidence.
+Save/reload, duplicate completion, reset, late evaluation, corrupt/legacy data
+and changed identities are tested. Benchmark history is kept separate.
+
+Q5 completed the [preregistered twelve-seed diagnostic](../research/target_memory_transfer/selection_transfer_preregistration.md).
+The [retained report](../research/target_memory_transfer/selection_replication.md)
+is inconclusive against neutral evolution: mean −0.0072, 95% bootstrap interval
+[−0.0175, +0.0025]. Transfer against the default is negative. Source performance
+improves against founders, but that contrast alone does not establish a causal
+advantage over neutral evolution. See the [interpretation and reproduction record](../research/target_memory_transfer/selection_replication_analysis.md)
+for provenance, control-budget limitations, the separately recorded presentation
+clarification, and the stop decision. These published scenarios remain development
+evidence; structural mutation and poker bindings remain conditional.
 
 ## Historical audits and design rationale
 
@@ -622,6 +655,10 @@ benchmark catalog → `docs/BENCHMARK_CATALOG.md`, and automated doc freshness c
 in `tests/test_docs_agent_onboarding.py` which verify that the line-count table pins
 in **2.6** match `LEGACY_MAX_LINES` and the `Any` count claims in **Theme 6** match
 a fresh scan of `core/`. The smoke gate fails on stale output for all three.
+
+Q1 extends this discipline to the maintained target-memory v4 JSON/Markdown
+pair: the broad test suite and `tools/check_transfer_report.py` reject artifact
+drift without rerunning or rewriting its experiment.
 
 ### 5.4 Close the stale open PR — `S` · ★ — SHIPPED (2026-07-26)
 [PR #587](https://github.com/mbolaris/tank/pull/587) (`start.py` +
@@ -1487,8 +1524,10 @@ rung ID; old rows stay valid.
 panels also exist: `SkillProgressPanel`, `SoccerSkillProgress`,
 `PokerSkillProgress`, and `SkillLadderPanel`. Do not rebuild them.
 
-**Next:** Q4 above closes the foraging-history persistence and comparability
-contract. The original benchmark-ledger trajectory, domain/rung heatmap, and
+**Q4 implemented (2026-10-03):** the existing progress panel now retains
+foraging history through world saves with run/evaluator/configuration/ruler
+compatibility and visible coverage/breaks; see [the identity contract](SKILL_EVIDENCE_IDENTITY.md).
+The original benchmark-ledger trajectory, domain/rung heatmap, and
 30-day radar ideas are deferred until a concrete comparison needs them. A live
 population sample and a frozen benchmark result are different evidence; neither
 should silently stand in for the other. Reuse the existing report and panels.

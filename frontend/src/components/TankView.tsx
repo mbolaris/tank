@@ -206,6 +206,9 @@ export function TankView({ worldId }: TankViewProps) {
             {/* Single row of compact controls */}
             <div className={stage.controlBar}>
                 <ControlPanel
+                    key={worldId || connectedWorldId || 'default'}
+                    paused={state?.stats?.paused}
+                    onPauseCommand={sendCommandWithResponse}
                     onCommand={sendCommand}
                     isConnected={isConnected}
                     fastForwardEnabled={state?.stats?.fast_forward}
@@ -435,6 +438,7 @@ export function TankView({ worldId }: TankViewProps) {
                     />
                     {followedFish && <FollowStoryCard fish={followedFish} onStop={selection.toggleFollow} onInspect={() => selection.selectEntity(followedFish.id, followedFish.type)} />}
                     <CinematicDirector
+                        key={effectiveWorldId}
                         enabled={directorEnabled}
                         onToggle={() => setDirectorEnabled((on) => !on)}
                         events={storyEvents}
@@ -464,6 +468,7 @@ export function TankView({ worldId }: TankViewProps) {
                 the timeline sits after it and centres itself on the same column. */}
             {!watchMode && (
                 <LivingHistory
+                    key={effectiveWorldId}
                     worldId={effectiveWorldId}
                     events={storyEvents}
                     currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}

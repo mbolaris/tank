@@ -16,6 +16,7 @@ import logging
 from typing import Any
 
 from backend.commentary_store import CommentaryStore
+from backend.foraging_history import ForagingHistory
 from backend.legend_service import LegendService
 from backend.metrics_history import MetricsHistory
 from backend.story_event_service import StoryEventService
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 # ``(runner attribute, snapshot key)``. The snapshot keys are a persisted
 # format: rename one only with a migration.
 RUNNER_STORES: tuple[tuple[str, str], ...] = (
+    ("foraging_history", "foraging_history"),
     ("metrics_history", "metrics_history"),
     ("commentary", "commentary"),
     ("story_events", "story_events"),
@@ -40,6 +42,7 @@ def init_runner_stores(runner: Any, world_id: str) -> None:
     not have.
     """
     runner.metrics_history = MetricsHistory(world_id=world_id)
+    runner.foraging_history = ForagingHistory(world_id=world_id)
     runner.commentary = CommentaryStore(world_id=world_id)
     runner.story_events = StoryEventService(world_id=world_id)
     runner.legends = LegendService(world_id=world_id)

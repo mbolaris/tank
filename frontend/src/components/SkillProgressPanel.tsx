@@ -36,6 +36,11 @@ function Row({ entry }: { entry: SkillProgressDomain }) {
             <div className={styles.numbers}>
                 {entry.samples} sample{entry.samples === 1 ? '' : 's'}
                 {span > 0 ? ` · ${span} generations` : ''}
+                {entry.age_frames != null ? ` · ${entry.age_frames} frames old` : ''}
+                {entry.coverage_frames != null ? ` · covers ${entry.coverage_frames} frames` : ''}
+                {entry.series_breaks ? ` · ${entry.series_breaks} series breaks` : ''}
+                {entry.identity_status && entry.identity_status !== 'known' ? ' · identity unknown or incompatible' : ''}
+                {entry.unknown_records ? ` · ${entry.unknown_records} unknown records excluded` : ''}
             </div>
         </div>
     );

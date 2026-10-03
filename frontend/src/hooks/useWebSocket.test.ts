@@ -222,7 +222,7 @@ describe('Command response routing', () => {
         expect(callbacks.has('autopilot')).toBe(false);
     });
 
-    it('keeps legacy uncorrelated responses working as a fallback', () => {
+    it('does not acknowledge multiple commands with an uncorrelated response', () => {
         const calls: string[] = [];
         const callbacks = new Map<string, (data: { success: boolean; request_id?: string }) => void>([
             ['first', () => calls.push('first')],
@@ -231,8 +231,16 @@ describe('Command response routing', () => {
 
         routeCommandResponse(callbacks, { success: true });
 
-        expect(calls).toEqual(['first', 'second']);
-        expect(callbacks.size).toBe(0);
+        expect(calls).toEqual([]);
+        expect(callbacks.size).toBe(2);
+    });
+    it('supports a single legacy response but ignores uncorrelated pause state', () => {
+        const calls: string[] = [];
+        const callbacks = new Map([['only', () => calls.push('only')]]);
+        routeCommandResponse(callbacks, { success: true, paused: true });
+        expect(calls).toEqual([]);
+        routeCommandResponse(callbacks, { success: true });
+        expect(calls).toEqual(['only']);
     });
 });
 

@@ -609,7 +609,7 @@ export interface StatsData {
     total_asexual_births: number;
     fps?: number;
     fast_forward?: boolean;
-
+    paused?: boolean;
     // Allow dynamic keys for meta-trait statistics (e.g. adult_size_mut_rate_mean)
     [key: string]: unknown;
 }
@@ -789,9 +789,9 @@ export interface AutoEvaluateStats {
     performance_history?: PokerPerformanceSnapshot[];
 }
 
-// Command Response Types
 export interface CommandResponse {
     success: boolean;
+    paused?: boolean;
     request_id?: string;
     error?: string;
     state?: PokerGameState;

@@ -24,7 +24,11 @@ interface LivingWorldToastsProps {
     onOpenBoard: () => void;
 }
 
-export function LivingWorldToasts({ worldId, onOpenBoard }: LivingWorldToastsProps) {
+export function LivingWorldToasts(props: LivingWorldToastsProps) {
+    return <WorldToasts key={props.worldId || 'default'} {...props} />;
+}
+
+function WorldToasts({ worldId, onOpenBoard }: LivingWorldToastsProps) {
     const { comments, loaded } = useCommentary(worldId);
     const [toasts, setToasts] = useState<CommentaryItem[]>([]);
     const [lastSeenId, setLastSeenId] = useState<number | null>(null);
