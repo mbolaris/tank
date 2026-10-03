@@ -216,6 +216,13 @@ class SkillEvaluationService:
         for process in processes:
             if process.is_alive():
                 process.terminate()
+            # `wait=False` lets ProcessPoolExecutor's management thread race
+            # application shutdown. Reap each captured child here so it cannot
+            # keep the test runner or server process alive after `stop()`.
+            process.join(timeout=1)
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=1)
 
     async def start(self) -> None:
         """Start periodic world evaluation, including an initial refresh."""

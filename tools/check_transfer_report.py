@@ -4,12 +4,31 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from core.behavior.target_memory_transfer_study import aggregate_rows, render_markdown
+
+
+def _same_aggregate(saved: object, recomputed: object) -> bool:
+    """Compare JSON-derived summaries across Python versions without float noise."""
+    if isinstance(saved, bool) or isinstance(recomputed, bool):
+        return type(saved) is type(recomputed) and saved == recomputed
+    if isinstance(saved, (float, int)) and isinstance(recomputed, (float, int)):
+        if isinstance(saved, float) or isinstance(recomputed, float):
+            return math.isclose(float(saved), float(recomputed), rel_tol=1e-12, abs_tol=1e-12)
+    if isinstance(saved, dict) and isinstance(recomputed, dict):
+        return saved.keys() == recomputed.keys() and all(
+            _same_aggregate(saved[key], recomputed[key]) for key in saved
+        )
+    if isinstance(saved, list) and isinstance(recomputed, list):
+        return len(saved) == len(recomputed) and all(
+            _same_aggregate(left, right) for left, right in zip(saved, recomputed, strict=True)
+        )
+    return saved == recomputed
 
 
 def check_report(report: dict, markdown: str) -> None:
@@ -32,7 +51,7 @@ def check_report(report: dict, markdown: str) -> None:
     if study["decision_rule"] != expected_rule:
         raise ValueError("Unknown primary effect or decision rule")
     effects = aggregate_rows(report["per_seed"])["effects"]
-    if report["aggregate"]["effects"] != effects:
+    if not _same_aggregate(report["aggregate"]["effects"], effects):
         raise ValueError("Saved effects disagree with retained rows; review correction separately")
     expected_verdict = effects[primary]["verdict"]
     if primary == "transfer_vs_neutral":

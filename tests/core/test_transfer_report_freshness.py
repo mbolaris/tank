@@ -2,6 +2,7 @@
 
 import copy
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -34,6 +35,13 @@ def test_check_rejects_drift(fault):
         report["study"]["decision_rule"] = "Use founders instead"
     with pytest.raises(ValueError):
         check_report(report, markdown)
+
+
+def test_recomputation_accepts_cross_python_float_rounding():
+    report = json.loads(REPORT.read_text(encoding="utf-8"))
+    effect = report["aggregate"]["effects"]["transfer_vs_disjoint"]
+    effect["mean"] = math.nextafter(effect["mean"], math.inf)
+    check_report(report, render_markdown(report))
 
 
 def test_old_provenance_is_unknown():

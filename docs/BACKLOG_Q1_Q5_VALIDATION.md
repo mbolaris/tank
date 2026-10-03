@@ -50,3 +50,17 @@ clears state. Validation after this fix:
 | From `frontend`: `npx playwright test e2e/soccer-arena.spec.ts --reporter=line` | PASS: complete real-backend arena and reconnect scenario |
 | From `frontend`: `npm test -- --run` | PASS: 69 files, 537 tests |
 | From `frontend`: `npm run lint` | PASS |
+
+## Cross-version core-shard follow-up
+
+The Python 3.10 CI run recomputed some aggregate floats at slightly different
+precision from the Python 3.14 report-generation environment. Freshness now
+compares aggregate numbers with a 1e-12 absolute/relative tolerance; report
+presentation, labels, verdicts, and decision rules still have exact checks. The
+same CI run exposed a child worker left unreaped after nonblocking executor
+shutdown, which delayed core-shard exit. Shutdown now terminates and joins each
+captured process, escalating to `kill()` if needed. The local targeted suite
+passed with 17 tests and one platform-specific skip. The agent gate passed, and
+the refreshed full pre-PR gate passed all shards; its core shard reported 1,120
+passed, one skipped and 32 deselected. The original browser failure also passed
+all 27 GitHub E2E tests after the reconnect fix.
