@@ -36,3 +36,17 @@ regression test and repeated browser checks cover that fix.
 `pre_commit run --all-files` found pre-existing whitespace/import-order failures
 outside this PR. Its unrelated automatic edits were reverted. The staged-file
 run above passes; the baseline-wide cleanup is outside Q1–Q5.
+
+## PR #971 reconnect regression follow-up
+
+The initial CI browser run found that disconnect handling cleared the last
+received WebSocket frame. That conflicted with Soccer Arena's reconnect contract,
+which keeps the pitch visible with a stale label while the socket retries. The
+hook now retains the frame during a same-world reconnect; switching worlds still
+clears state. Validation after this fix:
+
+| Command | Result |
+|---|---|
+| From `frontend`: `npx playwright test e2e/soccer-arena.spec.ts --reporter=line` | PASS: complete real-backend arena and reconnect scenario |
+| From `frontend`: `npm test -- --run` | PASS: 69 files, 537 tests |
+| From `frontend`: `npm run lint` | PASS |

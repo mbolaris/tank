@@ -173,7 +173,6 @@ export function useWebSocket(worldId?: string) {
                 setIsConnected(false);
                 responseCallbacksRef.current.forEach(callback => callback({ success: false, error: 'WebSocket disconnected' }));
                 responseCallbacksRef.current.clear();
-                setState(null);
                 wsRef.current = null;
 
                 // Only attempt to reconnect if component is still mounted
