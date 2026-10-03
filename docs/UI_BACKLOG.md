@@ -199,10 +199,14 @@ list would have rebuilt them.
 
 ## P2 — later
 
-- [ ] **Collapse the empty Board state.** Show a compact invitation to observe
-  rather than a full-height panel of agent-oriented commands.
-- [ ] **Explain energy balance discrepancies.** Add help text for the difference
-  between measured energy change and the approximate inflow/outflow ledger.
+- [x] **Collapse the empty Board state.** A compact invitation to watch replaces
+  the command-heavy empty state; agent prompts live in a closed "Invite an agent"
+  disclosure. Loading, world-event errors, and empty topic filters have explicit
+  states, with "Show all activity" available for empty filters (2026-10-03).
+- [x] **Explain energy balance discrepancies.** An expandable explanation
+  distinguishes measured fish-energy change from the approximate recorded-flow
+  ledger, names excluded internal transfers, and shows ledger net and the signed
+  measured-minus-ledger difference (2026-10-03).
 - [ ] **Add user-selectable workspace presets.** For example: Observe (Trends),
   Operate (Ecosystem), Compare (Skills), and Collaborate (Board).
 - [ ] **Regroup the default object layout into habitat zones.** The algae reef

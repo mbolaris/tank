@@ -124,6 +124,21 @@ export function EnergyEconomyPanel({ data, className }: EnergyEconomyPanelProps)
                 </div>
             </div>
 
+            <details style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
+                <summary style={{ cursor: 'pointer' }}>Why can the energy totals differ?</summary>
+                <p style={{ margin: '8px 0' }}>
+                    Measured change compares total fish energy at the start and end of the recent
+                    window. The ledger estimates that change from recorded inflows minus outflows.
+                    Internal transfers, such as reproduction and fish-to-fish poker, are excluded
+                    from the ledger; untracked flows and display rounding can leave a difference.
+                    Use measured change to see whether the fish population gained or lost energy.
+                </p>
+                <p style={{ margin: 0 }}>
+                    Ledger net: {netBalance > 0 ? '+' : ''}{formatVal(netBalance)}⚡.
+                    {' '}Measured minus ledger: {trueDelta - netBalance > 0 ? '+' : ''}{formatVal(trueDelta - netBalance)}⚡.
+                </p>
+            </details>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: '16px' }}>
 
                 {/* INFLOWS */}
