@@ -12,20 +12,30 @@ from fastapi.testclient import TestClient
 
 from backend.app_factory import AppContext, create_app
 from backend.routers.worlds import setup_worlds_router
+from backend.skill_evaluation_service import SkillEvaluationService
 from backend.world_manager import WorldManager
 
 
 @pytest.fixture
-def test_client():
+def test_client(monkeypatch):
     """Create a test client with fresh context."""
+    # Endpoint tests do not need population benchmarks or Observatory workers.
+    # Starting process pools from each TestClient lifespan can leave shutdown
+    # work behind after pytest has printed its passing summary.
+    monkeypatch.setenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "0")
+    evaluation_service = MagicMock(spec=SkillEvaluationService)
     # Create a fresh context for testing
     context = AppContext(
         world_manager=WorldManager(),
+        skill_evaluation_service=evaluation_service,
     )
     app = create_app(context=context, server_id="test-server")
 
     with TestClient(app) as client:
         yield client
+
+    evaluation_service.start.assert_awaited_once()
+    evaluation_service.stop.assert_awaited_once()
 
 
 class TestWorldTypesEndpoint:

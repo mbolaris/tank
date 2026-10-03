@@ -203,3 +203,23 @@ def test_exit_for_gate_hard_exits_despite_lingering_non_daemon_thread():
             "which blocks process exit until non-daemon threads finish."
         )
     assert result.returncode == 0
+
+
+def test_core_infra_pytest_process_exits_after_passing():
+    """Exercise interpreter shutdown, which an in-process pytest run cannot test.
+
+    CI reported 20 passing tests in this shard, then hit the gate's 600-second
+    timeout. Check process exit as well as the test results.
+    """
+    returncode = run_step_command(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests/test_worlds_api.py",
+            "tests/test_attempt_ledger.py",
+            "-q",
+        ],
+        timeout=60,
+    )
+    assert returncode == 0, "core_infra must pass and exit within 60 seconds"
