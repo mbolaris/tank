@@ -4,6 +4,14 @@ This backlog was created from an interactive review of the live Tank and
 Network views at 1280 x 720 and 390 x 844. Priorities reflect impact on a
 researcher trying to observe, understand, and safely operate a live world.
 
+## Next work — audited 2026-10-03
+
+The [active engineering queue](IMPROVEMENT_PROPOSALS.md#active-queue--audited-2026-10-03)
+owns priority and acceptance criteria. For UI work, take Q2 (world-scoped activity
+requests), then Q3 (server-confirmed playback state), then Q4 (comparable,
+persistent skill evidence). Q6 adds intervention provenance after those contracts
+exist. The completed review below is evidence of shipped work, not a new queue.
+
 ## Completed P0s
 
 - [x] **Focused analysis workspace.** The tank now opens to Trends and allows
@@ -207,13 +215,15 @@ list would have rebuilt them.
   distinguishes measured fish-energy change from the approximate recorded-flow
   ledger, names excluded internal transfers, and shows ledger net and the signed
   measured-minus-ledger difference (2026-10-03).
-- [ ] **Add user-selectable workspace presets.** For example: Observe (Trends),
-  Operate (Ecosystem), Compare (Skills), and Collaborate (Board).
-- [ ] **Regroup the default object layout into habitat zones.** The algae reef
-  currently reads as floating mid-water rather than attached to terrain.
-  Anchor reef/grotto to left/right habitat zones (matching
-  `core/tank_objects.py`'s `DEFAULT_TANK_LAYOUT`) and keep the center corridor
-  clear for soccer and general swim traffic.
+- [ ] **Workspace presets — DEFERRED.** A persisted single analysis panel and
+  Watch/Build/Analyze modes already exist. Reopen only after observing a repeated
+  workflow that existing modes and panel selection cannot serve; renaming the
+  same panels is insufficient justification.
+- [ ] **Habitat anchoring — NEEDS SCOPE.** First distinguish a rendering defect
+  from a request to move objects. A render-only attachment fix can be Layer 2;
+  changing `core/tank_objects.py`'s physical layout changes access to food and
+  must be a separate Layer 1 candidate with seeded ecosystem benchmarks. Require
+  a screenshot reproduction and a declared scope before implementation.
 - [x] **Reorganize the control bar by purpose.** World actions, Simulation,
   and View are labeled groups; the world-view selector joins the View group.
   Plant Energy and Reset world sit under a closed Advanced disclosure, so

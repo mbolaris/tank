@@ -9,12 +9,236 @@ strategic milestones (the Evolution Loop MVP, meta-evolution, etc.);
 this file tracks the *engineering* work that makes the codebase more fun to
 use and a better example of software design.
 
-**How to use it:** proposals are grouped by theme and tagged with effort
-(`S` / `M` / `L`) and impact (`★` low to `★★★` high). Start with
-high-impact, low-effort items. When you complete one, move it to the
-"Shipped" section at the bottom with the PR link.
+**How to use it:** choose work from the active queue below. The themed sections
+retain design history; an old star rating or an unchecked heading is not a
+current priority. `S` means one bounded fix, `M` means a change across a few
+existing components, and `L` requires decomposition before implementation.
+Mark the original entry when work ships and link its PR; do not create a second,
+contradictory status in the Shipped section.
 
-**Last audited against the tree: 2026-07-30** (external review #5 pass —
+## Active queue — audited 2026-10-03
+
+This is the task-selection order for engineering and observer UI work. The
+audit used repository snapshot `2e20a4b7`; evidence links below are inspection
+findings, not fresh simulation results or claims that every historical proposal
+was re-validated. Research direction still comes from [EVOLVABILITY.md](EVOLVABILITY.md).
+
+**Objective:** make evidence trustworthy, then test whether selection produces
+useful, transferable improvement. A more comfortable tank, a higher generation
+count, or a larger feature list does not by itself establish that result.
+
+Keep at most one implementation and one independently runnable research study
+in flight. One row may name staged PRs; never combine measurement changes with
+the algorithm they will judge. `READY` means a bounded next action exists,
+`QUEUED` means its named prerequisite must finish, and `CONDITIONAL` requires
+new evidence before spending implementation effort. Effort is a planning
+estimate, not a runtime or delivery promise.
+
+| Order | ID | Outcome | Layer / effort | Status and prerequisite |
+|---:|---|---|---|---|
+| 1 | Q1 | Published research verdicts agree with their source data | 2 / S | READY |
+| 2 | Q2 | Switching worlds cannot display another world's activity | 2 / S–M | READY |
+| 3 | Q3 | Playback controls reflect the server's accepted state | 2 / M | READY |
+| 4 | Q4 | Skill trends survive restart without mixing incomparable samples | 2 / M, staged | READY for schema design; persistence follows identity contract |
+| 5 | Q5 | Resolve selection-specific transfer before expanding the substrate | research first; 1 only for a later candidate / M | QUEUED after Q1 and reproducible study provenance |
+| 6 | Q6 | Experiments disclose human interventions | 2 / M, staged | QUEUED after Q3 and Q4's run identity |
+
+### Q1 — Make research artifacts agree with their declared primary effect
+
+**Evidence.** [study_v4.md](../research/target_memory_transfer/study_v4.md)
+prints a POSITIVE headline for `transfer_vs_disjoint`, while
+[study_v4.json](../research/target_memory_transfer/study_v4.json) stores a
+negative `aggregate.overall_verdict` and a negative primary-effect interval.
+The Markdown's own effect table also says negative.
+[`aggregate_rows` and `render_markdown`](../core/behavior/target_memory_transfer_study.py)
+already select/render that primary verdict correctly. This is artifact drift,
+not permission to choose a different primary metric.
+
+**First PR.** Regenerate the report from its checked-in JSON; add an offline
+freshness check for this maintained JSON/Markdown pair and assert that the
+headline, declared primary effect, aggregate verdict, and decision rule agree.
+Use the existing renderer and `tests/core/test_target_memory_transfer_study.py`.
+Preserve raw rows, seed lists, intervals, and scenario identity. Do not rerun or
+rewrite the experiment to repair presentation.
+
+**Done.** The saved report says negative; the check rejects a stale headline,
+positive/negative swap, or a verdict borrowed from the founders comparison.
+Missing provenance is labeled unknown, never inferred from today's checkout.
+If the JSON itself disagrees with the decision rule, stop publication and
+recompute from its retained rows in a separately reviewed correction.
+
+**Why first / stop rule.** A misleading conclusion can misdirect every later
+experiment. Stop at this artifact pair and reusable check; do not build a new
+reporting platform. This extends Theme 5.3's existing freshness discipline.
+
+### Q2 — Scope activity requests and cached state to a world
+
+**Evidence.** [`useCommentary`](../frontend/src/hooks/useCommentary.ts)
+keeps comments and `loaded` when `worldId` changes and uses a shared mounted
+flag to accept responses. [`useStoryEvents`](../frontend/src/hooks/useStoryEvents.ts)
+resets its cursor/state but also uses that flag. An old request can finish after
+the new effect sets the flag true. Inspect the same lifetime boundary for
+optimistic reactions in [`CommentaryFeed`](../frontend/src/components/CommentaryFeed.tsx).
+
+**First PR.** Reproduce with controlled deferred responses: start A, switch to
+B, resolve B, then resolve A. Reset world-owned loading/error/data together;
+use cancellation plus a request/world generation check to reject stale work.
+Handle out-of-order polls within one world as well as navigation. Reuse the
+hooks and merged feed; do not create another cache or activity surface.
+
+**Done.** Neither an A response nor an A reaction failure changes B; pending
+requests cannot repopulate an unmounted feed. A delayed older poll cannot
+replace newer comments or rewind a story cursor. Empty/loading/error states
+remain honest and normal polling recovers after a failed request. Prove with
+controlled promises, not timing-dependent sleeps; exercise world switching in
+the browser too. Cover Board, ambient toasts, and story consumers.
+
+### Q3 — Make playback controls authoritative and acknowledge commands
+
+**Evidence.** [`ControlPanel`](../frontend/src/components/ControlPanel.tsx)
+starts `isPaused` at false and flips it locally on send. The server owns
+`runner.paused`; [`WorldManager`](../backend/world_manager.py) already exposes
+it in world information, while the tank control has no paused-state prop.
+A refreshed paused world or a command from another client can disagree with
+the button. Fast-forward is partially reconciled; use that seam, not a second
+simulation state machine.
+
+**First PR.** Trace the existing snapshot/delta and command-ack contracts in
+[`useWebSocket`](../frontend/src/hooks/useWebSocket.ts) and
+[`control.py`](../backend/runner/commands/control.py). Carry accepted pause
+state to the control, show an in-flight command state, and reconcile failures
+or reconnects. Use existing request IDs where supported; document the actual
+fallback for commands without correlation rather than treating send as success.
+
+**Done.** A world loaded paused offers Resume; two clients converge after a
+pause/resume; rejection/disconnect does not leave a false accepted state;
+world switching clears pending state; repeated clicks do not issue contradictory
+commands. Include a real browser path and backend contract tests. A pause-only
+PR comes first; extend the same verified pattern to speed/reset separately.
+
+### Q4 — Retain comparable skill evidence across restarts
+
+**Evidence.** [`SkillProgressService`](../backend/skill_progress_service.py)
+retains foraging observations only in an in-memory deque, deduplicated by
+frame. [`SkillObservation`](../core/research/skill_progress.py) carries no run
+or evaluator identity. Poker/soccer snapshots already persist via
+[`world_persistence.py`](../backend/world_persistence.py) and
+[`SkillSnapshotStore`](../core/skill/snapshots.py); extend those patterns.
+
+**Stage A: identity contract.** Specify world + run/reset identity, evaluator
+version/rung identity, effective configuration, capture frame/generation, and
+completion status. Keep live population samples distinct from benchmark runs
+in `research/skill_history.jsonl`. Define compatibility and migration before
+retaining more samples; old records without identity remain explicitly unknown.
+
+**Stage B: persistence and display.** Persist bounded foraging history, restore
+it idempotently, and show sample count, age, coverage, and series breaks in the
+existing Skill Progress/Trends surfaces. A changed evaluator/configuration or
+reset begins a separate comparable segment. Reject late evaluations for an old
+run; a failed evaluation is absence of evidence, not zero skill.
+
+**Done.** Save/reload preserves the verdict for the same compatible samples;
+duplicate completion does not add a sample; repeated frame numbers in different
+runs cannot collide; incompatible samples never share a trend estimate;
+truncated/old saves degrade to a visible no-data state. Keep memory/storage
+bounded. No new radar chart or claim of progress from generation churn.
+This is the next slice of 11.6, not a second skill dashboard.
+
+### Q5 — Test whether selection, rather than drift, causes transfer
+
+**Evidence.** The saved [v4 study JSON](../research/target_memory_transfer/study_v4.json)
+reports positive transfer versus founders but negative transfer versus both
+the disjoint baseline and matched neutral evolution. The
+[v4 learnability audit](../research/target_memory_transfer/learnability_audit_v4.md)
+finds a flat food sweep around the default. These are different comparisons;
+neither a useful memory mechanism nor founder improvement proves beneficial
+cross-domain selection. Do not assume similarly named artifacts used identical
+code/configuration merely because both say v4.
+
+**First deliverable: a preregistered experiment, not new graph operators.**
+Record code/config/scenario identities and reproduce the existing controls with
+[`run_target_memory_transfer_study.py`](../scripts/run_target_memory_transfer_study.py).
+Use the existing food-trained, ball-trained, neutral, founder, and default arms
+with matched founders, mutation operators, and compute budgets. Freeze train,
+validation, and test separation; these published v4 test scenarios are now
+development evidence, not an untouched final confirmation set.
+
+**Decision before running.** Declare one primary contrast and a practical
+effect threshold, independent-run unit, seed set, budget cap, confidence rule,
+and failure policy. Diagnose source learnability separately. Report selection-
+specific transfer versus neutral and transfer versus default even if one is
+negative; never promote a secondary contrast after seeing results.
+
+**Go/no-go.** If source learning is absent, stop the transfer campaign and
+change/version the diagnostic in a separate Layer 2 PR. If source learning is
+real but target transfer is negative, publish that result and test one bounded
+mechanism hypothesis before adding poker bindings or structural mutation.
+Promotion needs the preregistered improvement on independent confirmation
+scenarios and the repository's multi-seed ecosystem checks. A neutral/negative
+result that closes a hypothesis is a successful research deliverable.
+
+### Q6 — Make interventions visible before calling runs experiments
+
+**Evidence.** Food/spawn/reset/build commands are present under
+[`backend/runner/commands/`](../backend/runner/commands/), but their command
+contracts do not establish a shared experiment identity or intervention ledger.
+The existing [E9 trust-state plan](EXPERIENCE_ROADMAP.md) is a prerequisite to
+clone-and-compare claims, not a badge-only UI feature.
+
+**Stage A.** Record accepted state-changing interventions with run/world ID,
+server frame, command parameters, request identity when available, and known
+actor/source (explicitly unknown otherwise). Do not record a rejected request
+as a world change. Define reset boundaries, persistence, retention, and export;
+reuse existing telemetry storage seams without conflating interventions with
+automatic story events or agent opinions.
+
+**Stage B.** Show intervention markers in the existing history/trend views and
+an explicit comparison eligibility reason. Define Sandbox/Experiment/Exhibition
+behavior before enforcing it. Do not label a run untouched unless all mutation
+entry points in the declared scope are covered.
+
+**Done.** A reset starts a new run segment; accepted interventions survive
+restart/export; duplicates and failures are handled consistently; comparison
+views explain incompatible or intervened runs. Logging must not consume the
+simulation RNG or change seeded trajectories. A run ID is provenance, not an
+authentication boundary; public deployment still depends on 9.3.
+
+### Conditional work and explicit non-goals
+
+- **1.0 determinism:** reopen from a current paired failure artifact with commit,
+  seed, config hash, interpreter/platform and first divergent checkpoint. Split
+  same-environment nondeterminism from cross-platform float differences. Do not
+  blanket-replace trig functions or re-baseline champions based on an old review.
+- **13.5 / 13.8 / 13.11 performance:** re-profile the current target workload
+  first. Take one attributable bottleneck through `tools/perf_check.py`, exact
+  trajectory checks, and the existing cost ratchet. Wall-clock budgets are noisy
+  diagnostics, not evidence that a particular optimization is worthwhile.
+- **12.5 structural mutation / poker half of 12.6:** gated on Q5 and a local
+  learnability demonstration for the proposed encoding. Implement parameter
+  search, structural edits, and crossover as separate experiments; do not build
+  all three before knowing which limitation matters.
+- **12.7 module lineage:** reuse `BehaviorGraph.fingerprint()` and existing
+  subject lineage IDs; content identity is not ancestry. First name the transfer
+  question and record parent/operator/domain provenance for that study only.
+- **Workspace presets:** deferred; `useVisiblePanels` already persists a focused
+  workspace and `useUiMode` provides Watch/Build/Analyze. Reopen only for an
+  observed repeated task that needs more than renaming existing panel buttons.
+- **Habitat layout:** moving feeding objects changes proximity/dwell/food supply.
+  Treat physical repositioning as Layer 1 and benchmark it separately from a
+  visual-only anchoring proposal. No "cosmetic" exception to validation.
+- **Broad refactors, extra charts, generic Any cleanup:** not default starter
+  work. Require a demonstrated fault, a consumer, or a measured bottleneck.
+
+**Planning maintenance.** Before starting, re-check the linked evidence and
+write the smallest acceptance test or experiment specification. When finishing,
+mark the queue row and its source proposal together, attach reproduction/PR
+evidence, and promote the next unblocked item. Do not mark a planned check as
+passed. The historical reviews below explain previous decisions; they do not
+override this queue.
+
+## Historical audits and design rationale
+
+**2026-07-30 audit** (external review #5 pass —
 scored the snapshot 95/100 and flagged that this document's own status
 entries had drifted; **7.4**, **7.6**, and the leaderboard/ranking half of
 **8.1** were marked open after they had already shipped in #911/#912, and are
@@ -35,48 +259,9 @@ something from here, **verify the premise first** (does the file still have that
 many lines? does that tool already exist?) and fix the entry in the same PR if
 it has drifted. See the closing rule at the bottom of this file.
 
-**Best current starter picks:**
-
-- **Theme 13 (performance, 2026-09-22)** — the newest open queue, and the one
-  that speeds up every other item's loop. **13.4** (the cost ratchet) has
-  shipped, so every win below now gets locked in by lowering a pin; **13.7**
-  now flags runtime overruns (2026-10-03). **13.5** and the open **13.8**
-  candidates are `S`-sized and provable with one
-  `python tools/perf_check.py` run. This partly supersedes the "no pick-up-and-go
-  infrastructure work" note below: those items are measured, small, and
-  behavior-preserving by construction.
-- **8.1** — the ranking/leaderboard half is shipped (#912); the remaining
-  `repro_reward_mode="credits"` semantics decision needs a maintainer call.
-- **1.0** — cross-machine determinism: the genetics mutation path is fixed
-  (polar-method `gauss`, #914). A 2026-07-31 investigation narrowed the
-  remaining 34 `math.cos` call sites to 8 confirmed score-sensitive ones on
-  CI-gated benchmarks (see `docs/CROSS_PLATFORM_DIVERGENCE.md`), but 1.0's
-  own CI-run-to-run instability (a separate, unresolved problem) is still the
-  higher-priority open half.
-
-**Note the shape of that list.** With **7.3**, **7.4**, and **7.6** all
-shipped, what remains here is one item blocked on a maintainer product
-decision and one genuinely hard open research problem — there is no longer a
-queue of pick-up-and-go infrastructure work. That is the state review #5
-(2026-07-30) predicted and prescribed for: *"stop infrastructure work for a
-while and run the research campaign."* An agent arriving here looking for the
-next task should read that as the instruction it is, and go produce a
-documented sequence of attempted ecosystem improvements — **including the
-failures** — rather than searching this file for another refactor.
-
-(**7.4** and **7.6**, the Playwright CI gate and the Node runtime pin, shipped
-in #911 on 2026-07-29.)
-
-**Explicitly deprioritized:** review #4's closing advice — "do not spend the
-next several PRs only retiring more `Any` annotations. That cleanup is healthy
-… but it has reached diminishing returns compared with determinism,
-browser-level verification, and making the game clearer and more fun." **6.2**
-stays open as background maintenance, not a starter pick.
-
-For smaller / less expensive agents: pick one `S` task tagged **Layer 2**. Those
-changes do not alter simulation results, cannot regress a champion trajectory,
-and are usually proven by the normal docs/tooling gates. Follow the recipe in
-[AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md): one focused change per PR.
+The starter recommendations from these reviews are historical. Use the active
+queue above for current priorities; follow [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md)
+for one focused change per PR.
 
 > **Themes 6–8 come from an external code review (2026-07, overall 82/100).**
 > The review praised the vision, architecture, test discipline, and determinism
@@ -1298,16 +1483,15 @@ visualization reads. Policy: rulers are immutable — changing one mints a new
 rung ID; old rows stay valid.
 
 ### 11.6 Skill dashboards: static report + UI panel — `M` · ★★ — PARTLY SHIPPED
-`tools/skill_report.py` ships the static text/JSON/HTML report. **The web-UI
-"Skill Trends" panel is the open half.** Three views over
-`skill_history.jsonl`:
-(a) **skill trajectory** per domain — x = date/commit, y = normalized skill,
-horizontal bands per ladder rung, config-hash changes as vertical markers;
-(b) **ladder matrix** — domains × rungs heatmap (loses / competitive /
-beats); (c) **domain radar** — the three skill indices, current vs 30 days
-ago. Deliver as `tools/skill_report.py` (self-contained HTML for PRs and
-nightly artifacts) first, then a "Skill Trends" panel in the web UI next to
-`EvolutionBenchmarkDisplay`. Depends on 11.5.
+`tools/skill_report.py` ships the static text/JSON/HTML report. Live UI skill
+panels also exist: `SkillProgressPanel`, `SoccerSkillProgress`,
+`PokerSkillProgress`, and `SkillLadderPanel`. Do not rebuild them.
+
+**Next:** Q4 above closes the foraging-history persistence and comparability
+contract. The original benchmark-ledger trajectory, domain/rung heatmap, and
+30-day radar ideas are deferred until a concrete comparison needs them. A live
+population sample and a frozen benchmark result are different evidence; neither
+should silently stand in for the other. Reuse the existing report and panels.
 
 ### 11.7 Freeze the rulers in CI — `S` · ★★ — SHIPPED
 `tools/check_locked_paths.py` now covers the poker ladder, foraging gym, and
@@ -1387,8 +1571,9 @@ the interpretability that is the project's best advertisement.
 12.4 has landed behind a default-off flag — further than this section's prose
 suggested — and its acceptance comparison is now measured and recorded below:
 the graph's food branch beats `ComposableBehavior` on the foraging gym, but the
-flag as wired captures none of that gain. **12.5 is the next real step, and it
-is the go/no-go gate for the whole theme.** The ADR (`docs/adr/`) recording the encoding decision is still
+flag as wired captures none of that gain. **That audit proposed 12.5 next;
+the current queue gates it on Q5 and a
+local learnability demonstration.** The ADR (`docs/adr/`) recording the encoding decision is still
 unwritten; it belongs with 12.5's result, not before it.
 
 ### 12.1 Extract steering/sensor primitives into a shared library — `M` · ★★★ — SHIPPED
@@ -1598,7 +1783,15 @@ changes is that the flag's value is now a *quantified trade-off against
 predation pressure* rather than an unknown, and a tank tuned for more
 predation would flip the sign.
 
-### 12.5 Graph mutation + type-safe subgraph crossover — `L` · ★★★
+### 12.5 Graph mutation + type-safe subgraph crossover — `L` · ★★★ — CONDITIONAL
+
+**Current entry gate:** complete Q5 and demonstrate local learnability for the
+proposed encoding. The scope below is a research direction, not one ready PR.
+Parameter search, structural mutation, and crossover require separate controlled
+experiments. Directional trait drift alone is insufficient: acceptance must
+also establish useful performance and selection-specific gain versus matched
+neutral controls on independent confirmation scenarios.
+
 **Layer 1.** Add param mutation (gauss, as today), node-swap mutation (like the
 enum switch / policy-ID swap), and low-probability *structural* mutation
 (add/remove/rewire an edge, splice a subgraph) behind a heritable
@@ -1608,8 +1801,9 @@ enum switch / policy-ID swap), and low-probability *structural* mutation
 measured on both axes and earns nothing on either — a monotonic foraging cost
 in the school gym, and flat under predation, where `priority` pre-empts the
 urgency gate entirely. The predator instrument that was the outstanding
-prerequisite has been built and reported (see 12.4), so this is no longer
-blocked on evidence. Either let mutation reach the threshold (it is already an
+prerequisite has been built and reported (see 12.4). That closes the predator
+measurement gap; it does not satisfy the current entry gate above. Either let
+mutation reach the threshold (it is already an
 evolvable `NodeParameterSpec`, so selection can find this itself — the more
 interesting experiment), or simplify the topology first and say why. What the
 same instrument *does* argue for keeping is the **threat** branch: it cuts
@@ -1644,6 +1838,11 @@ dominate every domain and champions are re-baselined (mirror ADR-006/016: prove
 no production path selects the old thing, then delete).
 
 ### 12.7 Module lineage + cross-domain skill matrix — `M` · ★★
+**Current scope:** conditional on a named transfer study. Reuse
+`BehaviorGraph.fingerprint()` for content identity and existing subject lineage
+IDs; identical content does not prove common ancestry. Record parents, mutation
+operator, and source domain for that study before planning a global skill matrix.
+
 **Layer 2 (observational).** Tag each behavioral module with a provenance id and
 record, per champion, which modules it carries and where they came from —
 "this interception module descends from the foraging champion and now appears in

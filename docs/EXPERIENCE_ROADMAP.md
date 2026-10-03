@@ -9,6 +9,10 @@ for agent-ready implementation briefs and [UI_SPEC.md](UI_SPEC.md) for visual an
 interaction rules. This roadmap evaluates the July 2026 product review; it does not
 repeat the review's engineering score as a project guarantee.
 
+Choose current implementation work from the [active engineering queue](IMPROVEMENT_PROPOSALS.md#active-queue--audited-2026-10-03).
+The experience goals below remain useful; their original delivery order is
+historical where capabilities have shipped.
+
 ## North Star and product position
 
 > A person unfamiliar with the project opens a tank, immediately notices something
@@ -26,8 +30,8 @@ not another dense analytical panel.
 
 ## Verified current state
 
-Audited against the repository on 2026-07-11, with individual rows re-checked on
-2026-09-11.
+Originally audited on 2026-07-11. Default panels, modes, story detection, and
+soccer evaluation were re-checked against `2e20a4b7` on 2026-10-03.
 
 **This table is a snapshot, not a standing truth.** Two of its "Confirmed"
 findings had been fixed without the row being updated, and the same was true of
@@ -37,33 +41,36 @@ row reads exactly like a live one.
 
 | Finding | Status | Repository evidence |
 |---|---|---|
-| Clicking a fish immediately opens transfer | **No longer true** (re-checked 2026-09-11) | `handleBuildEntityClick` in [`TankView.tsx`](../frontend/src/components/TankView.tsx) calls `selection.selectEntity`; transfer is behind `onRequestTransfer` on the inspector, which is what the "Adopt now" section below asked for |
-| The default tank view is a dense panel dashboard | Confirmed | Four panels are enabled by default; poker, trends, and genetics are additional toggles |
-| Frame, FPS, population, generation, and plant-energy controls are always exposed | Confirmed | The HUD and control bar are rendered directly by `TankView.tsx` |
+| Clicking a fish immediately opens transfer | **No longer true** (re-checked 2026-09-11) | `handleBuildEntityClick` in [`TankView.tsx`](../frontend/src/components/TankView.tsx) calls `selection.selectEntity`; transfer is behind `onRequestTransfer` on the inspector, as the original review requested |
+| The default tank view is a dense panel dashboard | **No longer true** | `useVisiblePanels.ts` defaults to one Trends panel and persists a single analysis view |
+| Technical HUD and controls are always exposed | **No longer true** | `TankView.tsx` supports Watch mode; `useUiMode.ts` provides Watch/Build/Analyze, and advanced controls are collapsed |
 | A second navigation implementation remains | **No longer true** (re-checked 2026-09-11) | `TankTabs.tsx` and `TankPlayTab.tsx` no longer exist in the tree |
 | Metrics history must be built | **Already solved** | [`metrics_history.py`](../backend/metrics_history.py), the metrics API, persistence, WebSocket deltas, and `TankTrendsTab.tsx` are live |
 | Generation-based trends must be built | **Already solved** | Trends defaults to a generation axis and can toggle to frames |
 | Ecosystem time-series charts must be built | **Already solved** | Population, births/deaths, mortality, energy, diversity, trait drift, poker ELO, and soccer-rate views exist |
 | One-command startup must be built | **Already solved** | [`start.py`](../start.py) is documented in the README and setup guide |
-| A narrative surface must be invented | **Partly solved** | The Insights/commentary feed exists, but deterministic automatic story detection does not |
+| A narrative surface must be invented | **Already solved** | `story_detectors.py`, the story-event service, merged Board feed, recap, and legends exist; request isolation remains Q2 |
 
 Do not rebuild the solved foundations. Extend them:
 
-- Use the existing metrics-history service and Trends view. The main remaining metrics
-  gap is a fixed-baseline soccer evaluation; `baseline_match_score_diff` is currently a
-  placeholder. Internal match rates alone do not prove improvement.
-- Feed structured story events into the existing Insights surface instead of creating a
-  competing activity feed.
+- Use the existing metrics-history service and Trends view. Fixed-reference soccer
+  evaluation now exists in `core/skill/live_soccer_evaluator.py`; remaining skill
+  evidence work is identity, comparability, and retention (Q4). Internal match rates
+  alone do not prove improvement.
+- Extend the existing merged Board/story surface; isolate its requests by world (Q2).
 - Use the deterministic replay harness in [REPLAY.md](REPLAY.md) as the eventual source
   for “watch this moment.” An event marker is not a replay until the required state is
   actually retained.
-- Keep transfer, but move it behind an explicit secondary action in the fish inspector.
+- Preserve transfer as the existing explicit secondary action in the fish inspector.
 - Reuse champion registry history for a future Lab-facing code-evolution view. Champion
   records are not organism legends and should not be presented as if they were.
 
-## Evaluation of the review
+## Historical review decisions
 
-### Adopt now
+### Adopted direction
+
+This records the original rationale. E0–E6 below have shipped; do not treat
+phrases such as "first experience PR" as current task instructions.
 
 | Suggestion | Decision |
 |---|---|
@@ -108,8 +115,8 @@ prerequisites remain owned by [FEDERATION.md](FEDERATION.md).
 
 ## Delivery sequence
 
-Status values are `NEXT`, `QUEUED`, and `DEFERRED`. One row is one PR unless the row
-explicitly says otherwise. Detailed acceptance criteria are in
+Status values include `DONE`, `PARTLY SHIPPED`, `QUEUED`, and `DEFERRED`.
+Split remaining work into the bounded PRs in the active queue. Historical criteria are in
 [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md).
 
 | Order | ID | Deliverable | Status | Depends on |
@@ -121,23 +128,23 @@ explicitly says otherwise. Detailed acceptance criteria are in
 | 5 | E4 | Living History feed and event timeline markers | DONE | E1, E3 |
 | 6 | E5 | “Since your last visit” recap | DONE | E3, E4 |
 | 7 | E6 | Notable-organism and lineage legends | DONE | E1, E3 |
-| 8 | E7 | Observe / Design / Lab shell; Observe becomes default | NEXT | E1, E4 |
+| 8 | E7 | Observe / Design / Lab shell; Observe becomes default | PARTLY SHIPPED: Watch/Build/Analyze exist; default-mode changes need usability evidence | Q2–Q4 before further shell work |
 | 9 | E8 | Contextual overlays and intervention toolbelt | QUEUED | E7 |
-| 10 | E9 | Trust states and intervention provenance | QUEUED | E7 |
+| 10 | E9 | Trust states and intervention provenance | QUEUED: staged as Q6 | Q3 and Q4 run identity |
 | 11 | E10 | Hypothesis-led clone-and-compare design flow | DEFERRED | E9 |
 
-E0 and E1 may be developed independently but should remain separate PRs. E3 shipped with
+E0 and E1 shipped as separate concerns. E3 shipped with
 exactly the three detectors it was scoped to—population danger/recovery, generation
 milestone, and lineage share threshold—so the event contract could stabilize before
-detector breadth grows. It stays at three until E4 has rendered them and shown what a
-viewer actually needs; adding a fourth is a versioned change to `EVENT_TYPES`, not a
+detector breadth grows. E4 now renders them; require evidence of a viewer need before
+adding detectors. Adding a fourth is a versioned change to `EVENT_TYPES`, not a
 drive-by addition. See U6 in [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md) for what landed and
-the four contract decisions E4 should build on.
+the four contract decisions retained by E4.
 
 A parallel **skill progression track** (S1–S4) makes in-tank evolution visible against
 frozen references: live ladder evaluation of evolved fish, a Skill Progress panel,
 per-fish poker skill, and breakthrough events. It fills the fixed-baseline soccer
-evaluation gap noted above (U12) and its event PR (S4) depends on E3. Plan of record:
+evaluation gap originally noted in U12; future changes should extend this track. Plan of record:
 [SKILL_PROGRESSION.md](SKILL_PROGRESSION.md).
 
 ## Phase outcomes
